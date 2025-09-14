@@ -109,6 +109,22 @@
         /* C# Implementations Section */
         .implementations-section { text-align: left; }
         .implementations-section > p { color: var(--text-muted); margin-bottom: 1.5rem; }
+        .download-button {
+            display: inline-block;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-family: var(--font-display);
+            font-weight: 500;
+            margin-bottom: 2rem;
+            transition: all 0.2s ease;
+        }
+        .download-button:hover {
+            background-color: var(--accent-teal);
+            color: var(--bg-color);
+            border-color: var(--accent-teal);
+        }
         .code-block-wrapper { margin-bottom: 2rem; }
         .code-block-wrapper h3 { color: var(--text-color); }
         .code-block-wrapper p { font-size: 0.9rem; }
@@ -180,7 +196,8 @@
         
         <div class="card-section implementations-section">
             <h2>Unity C# Implementations</h2>
-            <p>Here are three ready-to-use C# extension methods for Unity. Create a new static class (e.g., `SmoothingExtensions.cs`) and paste this code inside it to use these methods on any `float` value (e.g., `currentValue.LerpFrim(...)`).</p>
+            <p>Here are three ready-to-use C# extension methods for Unity, including versions for `Vector3`. Create a new static class (e.g., `SmoothingExtensions.cs`) and paste this code inside it to use these methods on any `float` or `Vector3` value.</p>
+            <a href="https://tront.xyz/lerp/SmoothingExtensions.cs" class="download-button" target="_blank">Download SmoothingExtensions.cs</a>
             
             <div class="code-block-wrapper">
                 <h3>Half-Life (Freya Holmér)</h3>
