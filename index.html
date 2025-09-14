@@ -63,7 +63,8 @@
         .container { max-width: 1000px; margin: 0 auto; }
         h1 { font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; margin-bottom: 3rem; }
         h2 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 500; margin-bottom: 0.5rem; }
-        a { color: var(--accent-teal); text-decoration: none; }
+        h3 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 500; margin-bottom: 1rem; text-align: left;}
+        a { color: var(--accent-teal); text-decoration: none; word-break: break-all; }
         a:hover { text-decoration: underline; }
         code {
             background-color: var(--bg-color);
@@ -76,13 +77,14 @@
             white-space: nowrap; /* PREVENTS UGLY LINE BREAKS */
         }
 
-        /* Demo Sections */
-        .demo-section {
+        /* Card Sections (for Demo and Implementations) */
+        .card-section {
             background-color: var(--item-bg);
             padding: 1.5rem;
             border-radius: 8px;
             border: 1px solid var(--border-color);
             margin-top: 2rem;
+            text-align: center;
         }
         .sim-container { display: flex; justify-content: center; gap: 20px; margin-top: 1.5rem; flex-wrap: wrap; }
         .sim-wrapper { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
@@ -97,11 +99,34 @@
         .explanation-box p { margin-bottom: 1rem; color: var(--text-muted); }
         .explanation-box strong { color: var(--text-color); font-weight: 500; }
         .explanation-box .author-card { padding: 1.25rem; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 1.5rem; background: var(--bg-color); }
-        .explanation-box .author-card h4 { margin-bottom: 0.5rem; color: var(--text-color); font-family: var(--font-body); font-weight: 700; }
+        .explanation-box .author-card h4 { margin-bottom: 0.25rem; color: var(--text-color); font-family: var(--font-body); font-weight: 700; }
         .explanation-box .author-card > p { margin-bottom: 1rem; font-size: 0.9rem; }
+        .explanation-box .source-link { font-size: 0.8rem; margin-bottom: 1rem; color: var(--text-muted); }
         .explanation-box blockquote { border-left: 3px solid var(--accent-purple); padding-left: 1rem; margin: 0; font-style: italic; color: var(--text-muted); font-size: 0.9rem; }
         .explanation-box blockquote p { margin-bottom: 0; }
         .explanation-box blockquote code { font-size: 1em; }
+        
+        /* C# Implementations Section */
+        .implementations-section { text-align: left; }
+        .implementations-section > p { color: var(--text-muted); margin-bottom: 1.5rem; }
+        .code-block-wrapper { margin-bottom: 2rem; }
+        .code-block-wrapper h3 { color: var(--text-color); }
+        .code-block-wrapper p { font-size: 0.9rem; }
+        pre {
+            background-color: var(--item-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: left;
+            overflow-x: auto;
+        }
+        pre code {
+            white-space: pre; padding: 0; border: none; background: none;
+            color: var(--text-muted); font-size: 0.85em;
+        }
+        pre code .keyword { color: #c586c0; }
+        pre code .type { color: #4ec9b0; }
+        pre code .comment { color: #6a9955; }
 
         /* Footer */
         footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.9rem; }
@@ -115,13 +140,13 @@
 
         <h1>Framerate-Independent Smoothing</h1>
 
-        <div class="demo-section">
+        <div class="card-section">
             <h2>Broken Methods: <code>a = lerp(a, b, constant)</code></h2>
             <p class="demo-subtext bad">This demo represents the result of both naive approaches. The movement is jerky and inconsistent.</p>
             <div id="bad-sims" class="sim-container"></div>
         </div>
         
-        <div class="demo-section">
+        <div class="card-section">
             <h2>Correct Method: <code>a = lerp(a, b, 1 - 2<sup>-dt/halfLife</sup>)</code></h2>
             <p class="demo-subtext good">Using true exponential decay, the motion is smooth and perfectly synchronized across all framerates.</p>
             <div id="good-sims" class="sim-container"></div>
@@ -134,19 +159,57 @@
             <p><strong>The Solution: FRIM Lerp.</strong> The correct method relies on a principle of <strong>exponential decay</strong>, which guarantees the value converges at the same rate over <em>real time</em>. This approach is often called <strong>FRIM Lerp</strong> (<strong>F</strong>rame<strong>r</strong>ate-<strong>I</strong>ndependent <strong>M</strong>otion using Lerp). The core idea is to calculate the 't' parameter for the lerp function with <code>1 - k<sup>deltaTime</sup></code>. This page synthesizes the solutions presented by three key figures who have clarified this concept:</p>
             
             <div class="author-card">
-                <h4><a href="https://www.rorydriscoll.com/2016/03/07/frame-rate-independent-damping-using-lerp/" target="_blank" rel="noopener noreferrer">Rory Driscoll (CodeItNow)</a></h4>
+                <h4>Rory Driscoll (CodeItNow)</h4>
+                <p class="source-link"><a href="https://www.rorydriscoll.com/2016/03/07/frame-rate-independent-damping-using-lerp/" target="_blank" rel="noopener noreferrer">https://www.rorydriscoll.com/2016/03/07/frame-rate-independent-damping-using-lerp/</a></p>
                 <p>Provided an excellent breakdown of the exponential decay formula, showing how it can be expressed with either a smoothing factor (<code>Pow</code>) or a decay constant (<code>Exp</code>).</p>
                 <blockquote><p><code>return Mathf.Lerp(a, b, 1 - Mathf.Exp(-lambda * dt))</code></p></blockquote>
             </div>
             <div class="author-card">
-                <h4><a href="https://www.construct.net/en/blogs/ashleys-blog-2/using-lerp-delta-time-924" target="_blank" rel="noopener noreferrer">Ashley (Construct)</a></h4>
+                <h4>Ashley (Construct)</h4>
+                <p class="source-link"><a href="https://www.construct.net/en/blogs/ashleys-blog-2/using-lerp-delta-time-924" target="_blank" rel="noopener noreferrer">https://www.construct.net/en/blogs/ashleys-blog-2/using-lerp-delta-time-924</a></p>
                 <p>Gave a clear mathematical proof of why common approximations fail and demonstrated that <code>1 - f ^ dt</code> is the perfectly accurate solution.</p>
                  <blockquote><p>So we can simplify and see that the remaining distance after one second is f^1 = f. So it's covered the same distance in one second regardless of the framerate!</p></blockquote>
             </div>
             <div class="author-card">
-                <h4><a href="https://mastodon.social/@acegikmo/111928099302633045" target="_blank" rel="noopener noreferrer">Freya Holmér</a></h4>
+                <h4>Freya Holmér</h4>
+                <p class="source-link"><a href="https://mastodon.social/@acegikmo/111928099302633045" target="_blank" rel="noopener noreferrer">https://mastodon.social/@acegikmo/111928099302633045</a></p>
                 <p>Brilliantly parameterized the formula using a "half-life" (λ), creating the most intuitive way to tune the smoothing for designers and artists with the formula <code>a = lerp(a, b, 1 - 2<sup>-dt/halfLife</sup>)</code>.</p>
                 <blockquote><p>...in case you want to port your existing lerps, you can convert from the old framerate dependent "lerp factor" to a half-life value... this will match the decay rate of your old implementation at the specific framerate, in any framerate.</p></blockquote>
+            </div>
+        </div>
+        
+        <div class="card-section implementations-section">
+            <h2>Unity C# Implementations</h2>
+            <p>Here are three ready-to-use C# extension methods for Unity. Create a new static class (e.g., `SmoothingExtensions.cs`) and paste this code inside it to use these methods on any `float` value (e.g., `currentValue.LerpFrim(...)`).</p>
+            
+            <div class="code-block-wrapper">
+                <h3>Half-Life (Freya Holmér)</h3>
+                <p>The most intuitive method. Tune the smoothing by answering: "How many seconds should it take to get halfway to the target?" A smaller half-life means faster smoothing.</p>
+                <pre><code><span class="comment">// Usage: currentValue = currentValue.LerpFrimHalfLife(targetValue, 0.2f, Time.deltaTime);</span>
+<span class="keyword">public static float</span> <span class="type">LerpFrimHalfLife</span>(<span class="keyword">this float</span> source, <span class="type">float</span> target, <span class="type">float</span> halfLife, <span class="type">float</span> deltaTime)
+{
+    <span class="keyword">return</span> Mathf.Lerp(source, target, 1f - Mathf.Pow(2f, -deltaTime / halfLife));
+}</code></pre>
+            </div>
+
+            <div class="code-block-wrapper">
+                <h3>Smoothing Factor (Ashley / Construct)</h3>
+                <p>Use a `smoothing` factor from 0 to 1. This value represents the fraction of the distance remaining after one second. A value of `0.1` means 10% remains (90% covered) after one second.</p>
+                <pre><code><span class="comment">// Usage: currentValue = currentValue.LerpFrim(targetValue, 0.1f, Time.deltaTime);</span>
+<span class="keyword">public static float</span> <span class="type">LerpFrim</span>(<span class="keyword">this float</span> source, <span class="type">float</span> target, <span class="type">float</span> smoothing, <span class="type">float</span> deltaTime)
+{
+    <span class="keyword">return</span> Mathf.Lerp(source, target, 1f - Mathf.Pow(smoothing, deltaTime));
+}</code></pre>
+            </div>
+
+            <div class="code-block-wrapper">
+                <h3>Decay Constant (Rory Driscoll)</h3>
+                <p>Uses a decay constant, `lambda`. A higher lambda results in faster smoothing. This form is common in physics and engineering.</p>
+                <pre><code><span class="comment">// Usage: currentValue = currentValue.LerpFrimLambda(targetValue, 5f, Time.deltaTime);</span>
+<span class="keyword">public static float</span> <span class="type">LerpFrimLambda</span>(<span class="keyword">this float</span> source, <span class="type">float</span> target, <span class="type">float</span> lambda, <span class="type">float</span> deltaTime)
+{
+    <span class="keyword">return</span> Mathf.Lerp(source, target, 1f - Mathf.Exp(-lambda * deltaTime));
+}</code></pre>
             </div>
         </div>
 
