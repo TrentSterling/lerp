@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo: Framerate-Independent Lerp (FRIM) Smoothing</title>
+    <meta name="description" content="An interactive demo showing the difference between broken, framerate-dependent lerp and the correct, framerate-independent smoothing (FRIM Lerp) using exponential decay. A guide for game developers.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d0f14;
+            --item-bg: #1a1c23;
+            --border-color: #30363d;
+            --text-color: #e0e0e0;
+            --text-muted: #8b949e;
+            --accent-purple: #a855f7;
+            --accent-teal: #2ee6d7;
+            --status-online: #23a55a;
+            --status-dnd: #f23f43;
+            --font-display: 'Fira Code', monospace;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body), Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            text-align: center;
+            padding: 2rem 1rem;
+            position: relative;
+            overflow-x: hidden;
+            opacity: 0;
+            transition: opacity .4s ease-in-out;
+        }
+
+        body.fonts-loaded {
+            opacity: 1;
+        }
+
+        /* Background Effects */
+        body::before, body::after {
+            content: ''; position: fixed; z-index: -2;
+            width: 80vmax; height: 80vmax; border-radius: 50%;
+            filter: blur(150px); opacity: .15; top: 50%; left: 50%;
+        }
+        body::before { background-color: var(--accent-purple); transform: translate(-80%, -20%); }
+        body::after { background-color: var(--accent-teal); transform: translate(20%, -40%); }
+        .grid-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+            background-size: 50px 50px; z-index: -1;
+        }
+        
+        /* Main Content */
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; margin-bottom: 3rem; }
+        h2 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 500; margin-bottom: 0.5rem; }
+        a { color: var(--accent-teal); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        code {
+            background-color: var(--bg-color);
+            padding: .2rem .5rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            font-family: var(--font-display);
+            color: var(--accent-teal);
+            font-size: 0.9em;
+            white-space: nowrap; /* PREVENTS UGLY LINE BREAKS */
+        }
+
+        /* Demo Sections */
+        .demo-section {
+            background-color: var(--item-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-top: 2rem;
+        }
+        .sim-container { display: flex; justify-content: center; gap: 20px; margin-top: 1.5rem; flex-wrap: wrap; }
+        .sim-wrapper { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+        .sim-wrapper p { font-family: var(--font-display); color: var(--text-muted); }
+        canvas { border: 1px solid var(--border-color); background-color: #282828; border-radius: 6px; width: 300px; height: 80px; }
+        .demo-subtext { color: var(--text-muted); margin: 0.5rem 0; font-size: 0.9rem; }
+        .demo-subtext.bad { color: var(--status-dnd); }
+        .demo-subtext.good { color: var(--status-online); }
+        
+        /* Explanation Box */
+        .explanation-box { max-width: 80ch; margin: 3rem auto; padding: 1.5rem; text-align: left; background-color: var(--item-bg); border-radius: 8px; border-left: 4px solid var(--accent-purple); line-height: 1.7; }
+        .explanation-box p { margin-bottom: 1rem; color: var(--text-muted); }
+        .explanation-box strong { color: var(--text-color); font-weight: 500; }
+        .explanation-box .author-card { padding: 1.25rem; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 1.5rem; background: var(--bg-color); }
+        .explanation-box .author-card h4 { margin-bottom: 0.5rem; color: var(--text-color); font-family: var(--font-body); font-weight: 700; }
+        .explanation-box .author-card > p { margin-bottom: 1rem; font-size: 0.9rem; }
+        .explanation-box blockquote { border-left: 3px solid var(--accent-purple); padding-left: 1rem; margin: 0; font-style: italic; color: var(--text-muted); font-size: 0.9rem; }
+        .explanation-box blockquote p { margin-bottom: 0; }
+        .explanation-box blockquote code { font-size: 1em; }
+
+        /* Footer */
+        footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.9rem; }
+        .tags { margin-top: 1rem; font-size: 0.8rem; line-height: 1.6; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+    <div class="grid-overlay"></div>
+    <div class="container">
+
+        <h1>Framerate-Independent Smoothing</h1>
+
+        <div class="demo-section">
+            <h2>Broken Methods: <code>a = lerp(a, b, constant)</code></h2>
+            <p class="demo-subtext bad">This demo represents the result of both naive approaches. The movement is jerky and inconsistent.</p>
+            <div id="bad-sims" class="sim-container"></div>
+        </div>
+        
+        <div class="demo-section">
+            <h2>Correct Method: <code>a = lerp(a, b, 1 - 2<sup>-dt/halfLife</sup>)</code></h2>
+            <p class="demo-subtext good">Using true exponential decay, the motion is smooth and perfectly synchronized across all framerates.</p>
+            <div id="good-sims" class="sim-container"></div>
+        </div>
+
+        <div class="explanation-box">
+            <p>In game development, a common task is to smoothly move a value, like a camera's position, towards a target. A frequent but incorrect approach is to use <strong>linear interpolation (lerp)</strong> inside an update loop.</p>
+            <p><strong>The First Mistake:</strong> A naive implementation looks like <code>a = lerp(a, b, 0.05)</code>. Since the update loop runs every frame, this constant factor of <code>0.05</code> is applied more often at higher framerates, causing the motion to be visibly faster. This is <strong>framerate-dependent</strong> and the core problem visualized above.</p>
+            <p><strong>The Second Mistake:</strong> To fix this, developers introduce <strong>delta time</strong> (the time since the last frame, e.g., Unity's <code>Time.deltaTime</code>). They try <code>a = lerp(a, b, smoothingFactor * deltaTime)</code>. While this seems logical, it's not mathematically sound. The result is only a crude approximation and, more dangerously, if <code>smoothingFactor * deltaTime</code> ever exceeds 1.0 (e.g., during a lag spike), the value will overshoot the target, causing jittery, unstable behavior.</p>
+            <p><strong>The Solution: FRIM Lerp.</strong> The correct method relies on a principle of <strong>exponential decay</strong>, which guarantees the value converges at the same rate over <em>real time</em>. This approach is often called <strong>FRIM Lerp</strong> (<strong>F</strong>rame<strong>r</strong>ate-<strong>I</strong>ndependent <strong>M</strong>otion using Lerp). The core idea is to calculate the 't' parameter for the lerp function with <code>1 - k<sup>deltaTime</sup></code>. This page synthesizes the solutions presented by three key figures who have clarified this concept:</p>
+            
+            <div class="author-card">
+                <h4><a href="https://www.rorydriscoll.com/2016/03/07/frame-rate-independent-damping-using-lerp/" target="_blank" rel="noopener noreferrer">Rory Driscoll (CodeItNow)</a></h4>
+                <p>Provided an excellent breakdown of the exponential decay formula, showing how it can be expressed with either a smoothing factor (<code>Pow</code>) or a decay constant (<code>Exp</code>).</p>
+                <blockquote><p><code>return Mathf.Lerp(a, b, 1 - Mathf.Exp(-lambda * dt))</code></p></blockquote>
+            </div>
+            <div class="author-card">
+                <h4><a href="https://www.construct.net/en/blogs/ashleys-blog-2/using-lerp-delta-time-924" target="_blank" rel="noopener noreferrer">Ashley (Construct)</a></h4>
+                <p>Gave a clear mathematical proof of why common approximations fail and demonstrated that <code>1 - f ^ dt</code> is the perfectly accurate solution.</p>
+                 <blockquote><p>So we can simplify and see that the remaining distance after one second is f^1 = f. So it's covered the same distance in one second regardless of the framerate!</p></blockquote>
+            </div>
+            <div class="author-card">
+                <h4><a href="https://mastodon.social/@acegikmo/111928099302633045" target="_blank" rel="noopener noreferrer">Freya Holmér</a></h4>
+                <p>Brilliantly parameterized the formula using a "half-life" (λ), creating the most intuitive way to tune the smoothing for designers and artists with the formula <code>a = lerp(a, b, 1 - 2<sup>-dt/halfLife</sup>)</code>.</p>
+                <blockquote><p>...in case you want to port your existing lerps, you can convert from the old framerate dependent "lerp factor" to a half-life value... this will match the decay rate of your old implementation at the specific framerate, in any framerate.</p></blockquote>
+            </div>
+        </div>
+
+        <footer>
+            <p>Created by Trent 'Tront' Sterling. Find more at <a href="https://tront.xyz" target="_blank">tront.xyz</a> and <a href="https://github.com/TrentSterling" target="_blank">GitHub</a>.</p>
+            <p class="tags">Tags: framerate independent lerp, frim lerp, gamedev, game programming, unity, c#, javascript, delta time, smoothing, damping, exponential decay, motion design</p>
+        </footer>
+    </div>
+
+    <script>
+        document.fonts.ready.then(() => { document.body.classList.add('fonts-loaded'); });
+        
+        (function() {
+            const CANVAS_WIDTH = 300, CANVAS_HEIGHT = 80, TARGET_X = 250, START_X = 20, SQUARE_SIZE = 30;
+            const CYCLE_DURATION = 3.0, TIMESTEPS_FPS = [10, 30, 60];
+
+            const simulations = [];
+            let cycleTimer = 0, lastTimestamp = 0;
+
+            const lerp = (a, b, t) => a + (b - a) * t;
+            const framerateIndependentLerp = (a, b, halfLife, dt) => {
+                if (halfLife <= 0) return b;
+                return lerp(a, b, 1 - Math.pow(2, -dt / halfLife));
+            };
+
+            function createSimulation(fps, isBad) {
+                const container = document.getElementById(isBad ? 'bad-sims' : 'good-sims');
+                const wrapper = document.createElement('div');
+                wrapper.className = 'sim-wrapper';
+                const p = document.createElement('p');
+                p.textContent = `${fps} FPS`;
+                const canvas = document.createElement('canvas');
+                canvas.width = CANVAS_WIDTH; canvas.height = CANVAS_HEIGHT;
+                wrapper.appendChild(p);
+                wrapper.appendChild(canvas);
+                container.appendChild(wrapper);
+
+                return { fps, isBad, ctx: canvas.getContext('2d'), currentX: START_X, timeAccumulator: 0, fixedDt: 1 / fps };
+            }
+
+            TIMESTEPS_FPS.forEach(fps => simulations.push(createSimulation(fps, true)));
+            TIMESTEPS_FPS.forEach(fps => simulations.push(createSimulation(fps, false)));
+            
+            function draw(sim) {
+                const ctx = sim.ctx;
+                ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                ctx.strokeStyle = '#2ee6d7'; // Accent Teal
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(TARGET_X, 0);
+                ctx.lineTo(TARGET_X, CANVAS_HEIGHT);
+                ctx.stroke();
+                
+                ctx.fillStyle = sim.isBad ? '#f23f43' : '#23a55a'; // Status DND / Online
+                ctx.fillRect(sim.currentX, (CANVAS_HEIGHT - SQUARE_SIZE) / 2, SQUARE_SIZE, SQUARE_SIZE);
+            }
+
+            function gameLoop(timestamp) {
+                if (!lastTimestamp) lastTimestamp = timestamp;
+                const deltaTime = (timestamp - lastTimestamp) / 1000.0;
+                lastTimestamp = timestamp;
+
+                cycleTimer += deltaTime;
+                if (cycleTimer >= CYCLE_DURATION) {
+                    cycleTimer = 0;
+                    simulations.forEach(sim => sim.currentX = START_X);
+                }
+
+                simulations.forEach(sim => {
+                    sim.timeAccumulator += deltaTime;
+                    while (sim.timeAccumulator >= sim.fixedDt) {
+                        if (sim.isBad) {
+                            sim.currentX = lerp(sim.currentX, TARGET_X, 0.05);
+                        } else {
+                            sim.currentX = framerateIndependentLerp(sim.currentX, TARGET_X, 0.3, sim.fixedDt);
+                        }
+                        sim.timeAccumulator -= sim.fixedDt;
+                    }
+                    draw(sim);
+                });
+                requestAnimationFrame(gameLoop);
+            }
+            requestAnimationFrame(gameLoop);
+        })();
+    </script>
+</body>
+</html>
