@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-tront-theme-editor data-tront-theme-surface="lerp" data-lerp-palette="original">
 <head>
 <!-- Google tag (GA4) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-27SVZGYHZ3"></script>
@@ -14,7 +14,7 @@
     <title>Demo: Framerate-Independent Lerp (FRIM) Smoothing</title>
     <meta name="description" content="An interactive demo showing the difference between broken, framerate-dependent lerp and the correct, framerate-independent smoothing (FRIM Lerp) using exponential decay. A guide for game developers.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -156,30 +156,65 @@
         footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.9rem; }
         .tags { margin-top: 1rem; font-size: 0.8rem; line-height: 1.6; color: var(--text-muted); }
     </style>
+    <link rel="canonical" href="https://tront.xyz/lerp/">
+    <link rel="stylesheet" href="/assets/css/tront-theme-editor.css">
+    <link rel="stylesheet" href="/assets/css/tront-navbar.css">
+    <link rel="stylesheet" href="lerp.css">
+    <script src="/assets/js/tront-system.js"></script>
+    <script src="/assets/js/tront-theme-editor.js"></script>
+    <script src="lerp-theme.js"></script>
 </head>
 <body>
+    <a class="skip-link" href="#demo">Skip to demo</a>
+    <nav id="magic-navbar-container" aria-label="Primary">
+        <button id="tront-theme-btn" class="nav-link" type="button" hidden><span class="theme-icon" aria-hidden="true">◐</span><span class="theme-label"> Theme</span></button>
+        <a href="/discord/" class="nav-link">Discord</a>
+        <a href="/blog/" class="nav-link">Blog</a>
+        <a href="/games/" class="nav-link">Games</a>
+        <a href="/" class="nav-link home-link"><img src="/assets/img/tront.png" alt="" class="logo-image"><span>Home</span></a>
+    </nav>
 
-    <div class="grid-overlay"></div>
-    <div class="container">
+    <div class="grid-overlay" aria-hidden="true"></div>
+    <main class="container" id="demo">
 
         <h1>Framerate-Independent Smoothing</h1>
 
+        <section class="lab-controls" aria-label="Smoothing demo controls">
+            <div class="lab-field">
+                <label for="half-life">Half-life <output id="half-life-value" for="half-life">0.30 s</output></label>
+                <input id="half-life" type="range" min="0.05" max="1" step="0.01" value="0.30" aria-describedby="rate-note">
+            </div>
+            <div class="lab-field">
+                <label for="comparison">Compare with</label>
+                <select id="comparison">
+                    <option value="fixed">Fixed factor per frame</option>
+                    <option value="scaled">Rate × delta time (clamped)</option>
+                </select>
+            </div>
+            <div class="lab-actions">
+                <button id="pause-demo" type="button" aria-pressed="false">Pause</button>
+                <button id="restart-demo" type="button">Restart</button>
+            </div>
+            <p id="rate-note" class="lab-note">The fixed factor matches the half-life at 60 FPS. Both rows start together and repeat every 3 seconds.</p>
+            <p id="demo-status" class="sr-only" role="status"></p>
+        </section>
+
         <div class="card-section">
-            <h2>Broken Methods: <code>a = lerp(a, b, constant)</code></h2>
-            <p class="demo-subtext bad">This demo represents the result of both naive approaches. The movement is jerky and inconsistent.</p>
+            <h2 id="comparison-heading">Fixed factor: <code>a = lerp(a, b, constant)</code></h2>
+            <p id="comparison-note" class="demo-subtext bad">A fixed factor is applied once per simulated frame. More frames means faster convergence.</p>
             <div id="bad-sims" class="sim-container"></div>
         </div>
         
         <div class="card-section">
             <h2>Correct Method: <code>a = lerp(a, b, 1 - 2<sup>-dt/halfLife</sup>)</code></h2>
-            <p class="demo-subtext good">Using true exponential decay, the motion is smooth and perfectly synchronized across all framerates.</p>
+            <p class="demo-subtext good">Exponential decay preserves the same convergence rate. Lower FPS still means fewer visible updates.</p>
             <div id="good-sims" class="sim-container"></div>
         </div>
 
         <div class="explanation-box">
             <p>In game development, a common task is to smoothly move a value, like a camera's position, towards a target. A frequent but incorrect approach is to use <strong>linear interpolation (lerp)</strong> inside an update loop.</p>
             <p><strong>The First Mistake:</strong> A naive implementation looks like <code>a = lerp(a, b, 0.05)</code>. Since the update loop runs every frame, this constant factor of <code>0.05</code> is applied more often at higher framerates, causing the motion to be visibly faster. This is <strong>framerate-dependent</strong> and the core problem visualized above.</p>
-            <p><strong>The Second Mistake:</strong> To fix this, developers introduce <strong>delta time</strong> (the time since the last frame, e.g., Unity's <code>Time.deltaTime</code>). They try <code>a = lerp(a, b, smoothingFactor * deltaTime)</code>. While this seems logical, it's not mathematically sound. The result is only a crude approximation and, more dangerously, if <code>smoothingFactor * deltaTime</code> ever exceeds 1.0 (e.g., during a lag spike), the value will overshoot the target, causing jittery, unstable behavior.</p>
+            <p><strong>The Second Mistake:</strong> To fix this, developers introduce <strong>delta time</strong> (the time since the last frame, e.g., Unity's <code>Time.deltaTime</code>). They try <code>a = lerp(a, b, smoothingFactor * deltaTime)</code>. This is a useful approximation, but its convergence rate still changes with the timestep. If <code>smoothingFactor * deltaTime</code> exceeds 1.0 (e.g., during a lag spike), an unclamped lerp can overshoot. Unity's <a href="https://docs.unity3d.com/6000.0/Documentation/ScriptReference/Mathf.Lerp.html" target="_blank" rel="noopener noreferrer">Mathf.Lerp clamps the factor to [0, 1]</a>, so it snaps to the target instead.</p>
             <p><strong>The Solution: FRIM Lerp.</strong> The correct method relies on a principle of <strong>exponential decay</strong>, which guarantees the value converges at the same rate over <em>real time</em>. This approach is often called <strong>FRIM Lerp</strong> (<strong>F</strong>rame<strong>r</strong>ate-<strong>I</strong>ndependent <strong>M</strong>otion using Lerp). The core idea is to calculate the 't' parameter for the lerp function with <code>1 - k<sup>deltaTime</sup></code>. This page synthesizes the solutions presented by three key figures who have clarified this concept:</p>
             
             <div class="author-card">
@@ -197,15 +232,23 @@
             <div class="author-card">
                 <h4>Freya Holmér</h4>
                 <p class="source-link"><a href="https://mastodon.social/@acegikmo/111928099302633045" target="_blank" rel="noopener noreferrer">https://mastodon.social/@acegikmo/111928099302633045</a></p>
-                <p>Brilliantly parameterized the formula using a "half-life" (λ), creating the most intuitive way to tune the smoothing for designers and artists with the formula <code>a = lerp(a, b, 1 - 2<sup>-dt/halfLife</sup>)</code>.</p>
+                <p>Brilliantly parameterized the formula using a "half-life" (h), creating the most intuitive way to tune the smoothing for designers and artists with the formula <code>a = lerp(a, b, 1 - 2<sup>-dt/halfLife</sup>)</code>.</p>
                 <blockquote><p>...in case you want to port your existing lerps, you can convert from the old framerate dependent "lerp factor" to a half-life value... this will match the decay rate of your old implementation at the specific framerate, in any framerate.</p></blockquote>
             </div>
         </div>
         
+        <section class="explanation-box precision-notes" aria-labelledby="precision-title">
+            <h2 id="precision-title">What “independent” means</h2>
+            <p>For a fixed target, the remaining error is multiplied by <code>2<sup>-dt/halfLife</sup></code>. Two steps multiply to <code>2<sup>-(dt₁ + dt₂)/halfLife</sup></code>, so splitting the same elapsed time into different steps gives the same answer. This is the exponential-decay property explained by <a href="https://www.rorydriscoll.com/2016/03/07/frame-rate-independent-damping-using-lerp/" target="_blank" rel="noopener noreferrer">Rory Driscoll</a> and <a href="https://www.construct.net/en/blogs/ashleys-blog-2/using-lerp-delta-time-924" target="_blank" rel="noopener noreferrer">Ashley</a>.</p>
+            <p>The rows simulate 10, 30 and 60 updates per second. Compare them at shared sample times: a 10 FPS object still moves in 100 ms steps. A changing target is sampled at different times at different rates, so exponential smoothing alone does not make those paths identical.</p>
+            <p>The half-life control sets <code>rate = ln(2) / halfLife</code>. The fixed factor is matched at 60 FPS; the delta-time option uses that continuous rate with a clamped Euler step. Pausing or leaving the tab pauses this demo's clock. Browser repaint frequency still limits how many updates you can actually see, as described in <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame" target="_blank" rel="noopener noreferrer">requestAnimationFrame's timing notes</a>.</p>
+            <p>Use seconds consistently, a positive half-life, non-negative delta time and decay rate, and a remaining-distance factor between 0 and 1. Exponential damping approaches a fixed target asymptotically; use a small tolerance if your game needs a definite “arrived” state.</p>
+        </section>
+
         <div class="card-section implementations-section">
             <h2>Unity C# Implementations</h2>
             <p>Here are three ready-to-use C# extension methods for Unity, including versions for `Vector3`. Create a new static class (e.g., `SmoothingExtensions.cs`) and paste this code inside it to use these methods on any `float` or `Vector3` value.</p>
-            <a href="https://tront.xyz/lerp/SmoothingExtensions.cs" class="download-button" target="_blank">Download SmoothingExtensions.cs</a>
+            <a href="SmoothingExtensions.cs" class="download-button" download>Download SmoothingExtensions.cs</a>
             
             <div class="code-block-wrapper">
                 <h3>Half-Life (Freya Holmér)</h3>
@@ -242,84 +285,10 @@
             <p>Created by Trent 'Tront' Sterling. Find more at <a href="https://tront.xyz" target="_blank">tront.xyz</a> and <a href="https://github.com/TrentSterling" target="_blank">GitHub</a>.</p>
             <p class="tags">Tags: framerate independent lerp, frim lerp, gamedev, game programming, unity, c#, javascript, delta time, smoothing, damping, exponential decay, motion design</p>
         </footer>
-    </div>
+    </main>
 
-    <script>
-        document.fonts.ready.then(() => { document.body.classList.add('fonts-loaded'); });
-        
-        (function() {
-            const CANVAS_WIDTH = 300, CANVAS_HEIGHT = 80, TARGET_X = 250, START_X = 20, SQUARE_SIZE = 30;
-            const CYCLE_DURATION = 3.0, TIMESTEPS_FPS = [10, 30, 60];
-
-            const simulations = [];
-            let cycleTimer = 0, lastTimestamp = 0;
-
-            const lerp = (a, b, t) => a + (b - a) * t;
-            const framerateIndependentLerp = (a, b, halfLife, dt) => {
-                if (halfLife <= 0) return b;
-                return lerp(a, b, 1 - Math.pow(2, -dt / halfLife));
-            };
-
-            function createSimulation(fps, isBad) {
-                const container = document.getElementById(isBad ? 'bad-sims' : 'good-sims');
-                const wrapper = document.createElement('div');
-                wrapper.className = 'sim-wrapper';
-                const p = document.createElement('p');
-                p.textContent = `${fps} FPS`;
-                const canvas = document.createElement('canvas');
-                canvas.width = CANVAS_WIDTH; canvas.height = CANVAS_HEIGHT;
-                wrapper.appendChild(p);
-                wrapper.appendChild(canvas);
-                container.appendChild(wrapper);
-
-                return { fps, isBad, ctx: canvas.getContext('2d'), currentX: START_X, timeAccumulator: 0, fixedDt: 1 / fps };
-            }
-
-            TIMESTEPS_FPS.forEach(fps => simulations.push(createSimulation(fps, true)));
-            TIMESTEPS_FPS.forEach(fps => simulations.push(createSimulation(fps, false)));
-            
-            function draw(sim) {
-                const ctx = sim.ctx;
-                ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                ctx.strokeStyle = '#2ee6d7'; // Accent Teal
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(TARGET_X, 0);
-                ctx.lineTo(TARGET_X, CANVAS_HEIGHT);
-                ctx.stroke();
-                
-                ctx.fillStyle = sim.isBad ? '#f23f43' : '#23a55a'; // Status DND / Online
-                ctx.fillRect(sim.currentX, (CANVAS_HEIGHT - SQUARE_SIZE) / 2, SQUARE_SIZE, SQUARE_SIZE);
-            }
-
-            function gameLoop(timestamp) {
-                if (!lastTimestamp) lastTimestamp = timestamp;
-                const deltaTime = (timestamp - lastTimestamp) / 1000.0;
-                lastTimestamp = timestamp;
-
-                cycleTimer += deltaTime;
-                if (cycleTimer >= CYCLE_DURATION) {
-                    cycleTimer = 0;
-                    simulations.forEach(sim => sim.currentX = START_X);
-                }
-
-                simulations.forEach(sim => {
-                    sim.timeAccumulator += deltaTime;
-                    while (sim.timeAccumulator >= sim.fixedDt) {
-                        if (sim.isBad) {
-                            sim.currentX = lerp(sim.currentX, TARGET_X, 0.05);
-                        } else {
-                            sim.currentX = framerateIndependentLerp(sim.currentX, TARGET_X, 0.3, sim.fixedDt);
-                        }
-                        sim.timeAccumulator -= sim.fixedDt;
-                    }
-                    draw(sim);
-                });
-                requestAnimationFrame(gameLoop);
-            }
-            requestAnimationFrame(gameLoop);
-        })();
-    </script>
+    <script src="smoothing.js"></script>
+    <script src="demo.js"></script>
 <!-- tront-about:start -->
 <style>.tront-about{position:fixed;left:12px;bottom:12px;z-index:2147483000;font:13px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif;color:#e9ecef;text-align:left}.tront-about>summary{cursor:pointer;list-style:none;display:inline-block;background:#0b0d10d9;color:#e9ecef;border:1px solid #ffffff33;border-radius:999px;padding:6px 12px;backdrop-filter:blur(6px);user-select:none}.tront-about>summary::-webkit-details-marker{display:none}.tront-about>summary:hover{border-color:#ffffff66}.tront-about>div{margin-top:8px;width:min(560px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:#0b0d10f5;border:1px solid #ffffff33;border-radius:12px;padding:14px 16px;box-shadow:0 12px 40px #000a}.tront-about h2{font-size:17px;margin:0 0 8px;color:#fff}.tront-about p{margin:0 0 9px}.tront-about a{color:#8fd3ff}.tront-about ul{margin:4px 0 10px;padding-left:18px}.tront-about li{margin:2px 0}.tront-about .tront-hub{opacity:.85;font-size:12px}</style>
 <details class="tront-about" id="trontAbout"><summary>About &middot; More by Tront</summary><div><h2>Frame-Rate Independent Lerp by Tront</h2><p>A demo of a bug almost every game has shipped at least once: `lerp(a, b, 0.1)` every frame is not frame-rate independent, so the same code feels different at 30, 60 and 144 frames per second. This page runs the naive version and the corrected exponential form side by side so you can see them drift apart.</p><p>One page, no install. By Tront (Trent Sterling), who hit this in production more than once.</p><p><strong>More from Tront</strong></p><ul><li><a href="https://tront.xyz/vibestar/">VibeStar</a>: A* pathfinding visualiser with web workers and a lot of knobs.</li><li><a href="https://tront.xyz/shortpath/">Short Path</a>: Duan-Mao and Dijkstra shortest-path algorithms visualised in JavaScript.</li><li><a href="https://tront.xyz/spheres/">Procedural Packed Texture Generator</a>: Generate procedurally packed tiling textures with a live WebGL shader preview.</li></ul><p class="tront-hub"><a href="https://tront.xyz/games/">All games and tools</a> &middot; <a href="https://tront.xyz/blog/">Devlog</a> &middot; <a href="https://tront.xyz/discord/">Discord</a> &middot; <a href="https://github.com/TrentSterling/lerp">Source on GitHub</a> &middot; <a href="https://tront.xyz/">tront.xyz</a></p></div></details>
