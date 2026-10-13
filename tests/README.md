@@ -1,9 +1,13 @@
 # Lerp checks
 
 This page consumes the shipped shared ColorMagic engine and navbar from the root
-site. `lerp-theme.js` is a page-only adapter. Midnight/Reset restores the original
-palette and background, while custom choices recolor the existing two glows and
-50px grid. No shared assets or other page sources are changed.
+site. `lerp-editor.js` is a narrow local derivative of the exact released editor
+at af3958a591e18b0126904fffd892b11974ef0dd5. Its Original lerp state has the four
+existing color roles and isolated `tront-theme-lerp-v1` storage. Reset removes
+only that key. Custom choices recolor the existing two glows and 50px grid.
+No shared assets or other page sources are changed. The original source, local
+patch and SHA-256 provenance are retained under `tests/`. Color math and modal
+session/focus code stay byte-for-byte identical to the released editor.
 
 Run `node --test tests/*.test.cjs` for deterministic math and source contracts.
 Run `node tests/browser.cjs` with Playwright and Chrome installed for rendering,
@@ -29,7 +33,8 @@ rate limits displayed frames. Parameter changes restart both rows together.
 - [requestAnimationFrame](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame)
   uses timestamp-based animation and generally follows monitor refresh.
 
-The two original rows remain. A selector now really demonstrates both methods;
+The original About/More disclosure is retained in the footer instead of a fixed
+overlay that can obscure the demo on phones. The two original rows remain. A selector now really demonstrates both methods;
 half-life, pause/restart and remaining-distance values make the result measurable.
 Fixed-factor tuning matches the selected half-life at 60 FPS. Euler uses the same
 continuous decay rate, ln(2)/half-life. A compact sourced note separates exact

@@ -1,0 +1,15 @@
+{
+  "upstreamRepository": "TrentSterling/trentsterling.github.io",
+  "upstreamCommit": "af3958a591e18b0126904fffd892b11974ef0dd5",
+  "upstreamPath": "assets/js/tront-theme-editor.js",
+  "upstreamSha256": "1fdb52b2f482521ef3f073d0b62cefe5a59ae03fa401061a8130bc634f57ef67",
+  "localPath": "lerp-editor.js",
+  "localSha256": "a7083a631e7b79c716b7244bdba16fcf4dd6835a9614f876f9c2dcd205585134",
+  "unchangedFunctions": [
+    "buildTokens",
+    "colorMagic",
+    "closeEditor",
+    "finishClose"
+  ],
+  "storageKey": "tront-theme-lerp-v1"
+}

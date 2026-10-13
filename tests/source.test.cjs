@@ -6,7 +6,7 @@ const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const baseline = process.env.LERP_BASELINE_ROOT;
 test('exact shipped root assets, local page adapter and six-simulation contract', () => {
-    for (const file of ['/assets/js/tront-system.js', '/assets/js/tront-theme-editor.js', '/assets/css/tront-theme-editor.css', '/assets/css/tront-navbar.css']) assert.ok(html.includes(file));
+    for (const file of ['/assets/js/tront-system.js', 'lerp-editor.js', '/assets/css/tront-theme-editor.css', '/assets/css/tront-navbar.css']) assert.ok(html.includes(file));
     assert.match(html, /data-tront-theme-surface="lerp"/);
     assert.match(html, /id="bad-sims"/); assert.match(html, /id="good-sims"/);
     assert.match(html, /id="comparison"/); assert.match(html, /id="half-life"/);

@@ -48,6 +48,9 @@ html[data-tront-theme-surface="lerp"][data-lerp-palette="custom"] .tront-about :
 html[data-tront-theme-surface="lerp"][data-lerp-palette="custom"] .tront-about h2 { color: var(--te-ink); }
 html[data-tront-theme-surface="lerp"][data-lerp-palette="custom"] .tront-about a { color: var(--te-accent); }
 #tront-theme-btn[hidden] { display: none !important; }
+/* Keep the original About/crosslinks disclosure without covering the demo. */
+html[data-tront-theme-surface="lerp"] .tront-about { position: static; max-width: 80ch; margin: 1.5rem auto 0; }
+html[data-tront-theme-surface="lerp"] .tront-about > div { width: min(560px, 100%); max-height: none; }
 html[data-tront-theme-surface="lerp"] .container .download-button:hover {
     background: var(--item-bg); color: var(--accent-teal); border-color: var(--accent-teal);
 }

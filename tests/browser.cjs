@@ -40,6 +40,14 @@ async function overflow(page){return page.evaluate(()=>({width:innerWidth,scroll
         report.browser=browser.version();
         for(const width of [1440,390,320]){
             const context=await browser.newContext({viewport:{width,height:1000},reducedMotion:'reduce'});
+            await context.addInitScript(()=>{
+                localStorage.setItem('tront-theme','tront-purple');
+                localStorage.setItem('tront-theme-editor-v1','shared-theme-sentinel');
+                localStorage.setItem('tront-theme-gallery-v1','games-theme-sentinel');
+                window.__paint=[];
+                function paint(){if(document.body&&location.pathname==='/lerp/')window.__paint.push({bg:getComputedStyle(document.body).backgroundColor,opacity:getComputedStyle(document.body).opacity,palette:document.documentElement.getAttribute('data-lerp-palette')});if(window.__paint.length<20)requestAnimationFrame(paint);}
+                requestAnimationFrame(paint);
+            });
             await context.route('https://www.googletagmanager.com/**',r=>r.fulfill({status:204,body:''}));
             page=await context.newPage();
             page.on('pageerror',e=>report.errors.push(e.message));
@@ -51,6 +59,9 @@ async function overflow(page){return page.evaluate(()=>({width:innerWidth,scroll
             await page.evaluate(()=>document.fonts.ready);
             assert.equal(await page.locator('canvas').count(),6);
             assert.equal(await page.locator('html').getAttribute('data-lerp-palette'),'original');
+            const paint=await page.evaluate(()=>window.__paint);assert.ok(paint.length);paint.forEach(p=>{assert.equal(p.bg,'rgb(13, 15, 20)');assert.equal(p.opacity,'1');});
+            const canvasBoxes=await page.locator('canvas').evaluateAll(cs=>cs.map(c=>({w:c.getBoundingClientRect().width,h:c.getBoundingClientRect().height})));
+            canvasBoxes.forEach(b=>{assert.ok(b.w<=300&&b.w>0);near(b.w/b.h,3.75,0.1);});
             const current=await composition(page);assert.deepEqual(current,original);
             const flow=await overflow(page);assert.ok(flow.scroll<=width,JSON.stringify(flow));assert.deepEqual(flow.over,[]);
             assert.equal(await page.locator('#pause-demo').innerText(),'Play');
@@ -58,15 +69,19 @@ async function overflow(page){return page.evaluate(()=>({width:innerWidth,scroll
             const download=await context.request.get(host+'/lerp/SmoothingExtensions.cs');assert.equal(download.status(),200);
             assert.equal(await download.text(),fs.readFileSync(path.join(BASE,'SmoothingExtensions.cs'),'utf8'));
             await page.screenshot({path:path.join(OUT,`after-original-${width}.png`),fullPage:true});
-            report.composition.push({width,exactOriginalComposition:true,original,current,overflow:flow});
+            await page.screenshot({path:path.join(OUT,`viewport-original-${width}.png`)});
+            report.composition.push({paint,canvasBoxes,width,exactOriginalComposition:true,original,current,overflow:flow});
             await page.getByRole('button',{name:'Choose a theme'}).click();
             assert.equal(await page.locator('#tront-theme-editor').evaluate(e=>e.open),true);
             assert.equal(await page.locator('.te-peg').count(),4);
+            assert.equal(await page.locator('#te-preset').inputValue(),'lerp-original');
+            assert.deepEqual(await page.locator('input[type=color]').evaluateAll(es=>es.map(e=>e.value)),['#a855f7','#2ee6d7','#f23f43','#23a55a']);
+            assert.match(await page.locator('.te-hint').innerText(),/purple glow, teal target/);
             for(const palette of ['cyan','purple','ember','moss','light','dark']){
                 await page.locator('#te-preset').selectOption(palette);
-                const state=await page.locator('html').getAttribute('data-lerp-palette');assert.equal(state,palette==='dark'?'original':'custom');
+                const state=await page.locator('html').getAttribute('data-lerp-palette');assert.equal(state,'custom');
                 assert.ok((await overflow(page)).scroll<=width);
-                if(palette!=='dark'){
+                if(palette){
                     const contrast=await page.evaluate(()=>{
                         const parse=v=>(v.match(/[\d.]+/g)||[]).slice(0,3).map(Number);
                         const ratio=(a,b)=>window.TrontThemeEditor.contrast(a,b);
@@ -82,7 +97,7 @@ async function overflow(page){return page.evaluate(()=>({width:innerWidth,scroll
                     });
                     for(const c of contrast)assert.ok(c.ratio>=4.5,JSON.stringify({palette,width,...c}));
                 }
-                if(palette==='light')await page.screenshot({path:path.join(OUT,`theme-light-${width}.png`),fullPage:false});
+                if(palette==='light'){await page.screenshot({path:path.join(OUT,`theme-light-${width}.png`),fullPage:false});await page.locator('[data-action=close]').click();await page.screenshot({path:path.join(OUT,`viewport-light-${width}.png`)});await page.locator('#tront-theme-btn').click();}
             }
             await page.locator('[data-action="magic"]').click();
             assert.equal(await page.locator('html').getAttribute('data-lerp-palette'),'custom');
@@ -115,9 +130,14 @@ async function overflow(page){return page.evaluate(()=>({width:innerWidth,scroll
             await page.locator('#tront-theme-btn').click();
             await page.mouse.click(2,2);
             assert.equal(await page.locator('#tront-theme-editor').evaluate(e=>e.open),false);
+            const retained=await page.evaluate(()=>[localStorage.getItem('tront-theme'),localStorage.getItem('tront-theme-editor-v1'),localStorage.getItem('tront-theme-gallery-v1'),localStorage.getItem('tront-theme-lerp-v1')]);
+            assert.deepEqual(retained,['tront-purple','shared-theme-sentinel','games-theme-sentinel',null]);
+            assert.equal(await page.locator('.tront-about').evaluate(e=>getComputedStyle(e).position),'static');
+            await page.locator('.tront-about summary').click();assert.equal(await page.locator('.tront-about').evaluate(e=>e.open),true);
+            await page.locator('.tront-about summary').click();
             await page.locator('.precision-notes').scrollIntoViewIfNeeded();
             await page.screenshot({path:path.join(OUT,`article-${width}.png`)});
-            report.checks.push({width,presets:6,modalFocus:true,persistence:true,fourPegs:true,resetUndo:true});
+            report.checks.push({width,presets:6,modalFocus:true,persistence:true,fourPegs:true,resetUndo:true,sharedStorageUntouched:true,firstPaint:true,footerAbout:true});
             await context.close();
         }
         // Exercise the actual renderer with precise, irregular rAF timestamps.
