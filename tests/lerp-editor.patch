@@ -1,0 +1,121 @@
+--- upstream/tront-theme-editor.js
++++ lerp-editor.js
+@@ -1,5 +1,7 @@
+ /*
+- * Opt-in theme editor. Gallery keeps its original look until a new palette is chosen.
++ * Lerp-local adapter of the shipped shared ColorMagic editor.
++ * Upstream: TrentSterling/trentsterling.github.io@af3958a591e18b0126904fffd892b11974ef0dd5.
++ * Only native-state/storage/UI integration differs; token math and modal lifecycle are unchanged.
+  * Reuses the palette and color helpers in tront-system.js without changing its
+  * shared engine. Never writes the legacy tront-theme / gallery preference keys.
+  *
+@@ -15,7 +17,16 @@
+     if (!T) return;
+     var doc = root.document;
+     var gallery = !!(doc && doc.documentElement.getAttribute('data-tront-theme-surface') === 'gallery');
+-    var KEY = gallery ? 'tront-theme-gallery-v1' : 'tront-theme-editor-v1';
++    var lerpSurface = !!(doc && doc.documentElement.getAttribute('data-tront-theme-surface') === 'lerp');
++    if (!lerpSurface) return;
++    var KEY = 'tront-theme-lerp-v1';
++    function originalLerp() {
++        return { version: 1, preset: 'lerp-original', mode: 'dark', count: 4,
++            angle: 135, intensity: 100, frost: 100,
++            pegs: ['#a855f7', '#2ee6d7', '#f23f43', '#23a55a'].map(function (color, i) {
++                return { color: color, position: Math.round(i * 100 / 3) };
++            }) };
++    }
+     var PRESETS = [
+         { id: 'dark', name: 'Midnight', mode: 'dark', colors: ['#64748b', '#334155', '#171d2e', '#655783'] },
+         { id: 'cyan', name: 'Cyan', mode: 'dark', colors: ['#56ccff', '#1871b8', '#2dd4bf', '#99f6e4'] },
+@@ -35,6 +46,7 @@
+             pegs: p.colors.map(function (color, i) { return { color: color, position: Math.round(i * 100 / 3) }; }) };
+     }
+     function normalize(value) {
++        if (value && value.preset === 'lerp-original') return originalLerp();
+         var fallback = preset('dark');
+         if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback;
+         return {
+@@ -162,18 +174,19 @@
+     }
+     function readStored() {
+         try {
+-            legacyGallery = root.localStorage.getItem('tront-theme') || 'dark';
++            // Lerp never reads or rewrites another page's preferences.
+             var saved = root.localStorage.getItem(KEY);
+             if (saved) {
+                 try { var parsed = JSON.parse(saved); if (parsed && parsed.version === 1) return normalize(parsed); } catch (_) { /* Fall back to the prior choice. */ }
+             }
+-            return gallery ? originalGallery() : fromLegacy(legacyGallery);
+-        } catch (_) { storageAvailable = false; return gallery ? originalGallery() : preset('dark'); }
++            return originalLerp();
++        } catch (_) { storageAvailable = false; return originalLerp(); }
+     }
+     var state = readStored(), history = [], draftStart = null, dialog, opener, status, currentTokens;
+     function apply() {
+         currentTokens = buildTokens(state);
+         Object.keys(currentTokens.vars).forEach(function (key) { html.style.setProperty(key, currentTokens.vars[key]); });
++        html.setAttribute('data-lerp-palette', state.preset === 'lerp-original' ? 'original' : 'custom');
+         html.setAttribute('data-te-mode', state.mode);
+         html.style.colorScheme = state.mode;
+         // Reading the original gallery choice never rewrites its old preference.
+@@ -188,7 +201,11 @@
+         if (html.getAttribute('data-tront-theme-surface') === 'blog') html.setAttribute('data-mode', state.mode);
+     }
+     function save() {
+-        try { root.localStorage.setItem(KEY, JSON.stringify(state)); storageAvailable = true; }
++        try {
++            if (state.preset === 'lerp-original') root.localStorage.removeItem(KEY);
++            else root.localStorage.setItem(KEY, JSON.stringify(state));
++            storageAvailable = true;
++        }
+         catch (_) { storageAvailable = false; }
+     }
+     function remember(previous) {
+@@ -203,7 +220,7 @@
+         apply(); save(); sync();
+     }
+     function announce() {
+-        if (status) status.textContent = storageAvailable ? (gallery ? 'Games keeps its radial background. Choices save in this browser.' : 'Choices save in this browser.') : 'Preview only. Browser storage is unavailable.';
++        if (status) status.textContent = storageAvailable ? 'Choices save for this demo only. Reset restores Original lerp.' : 'Preview only. Browser storage is unavailable.';
+     }
+     function sync() {
+         if (!dialog) return;
+@@ -220,7 +237,10 @@
+             dialog.querySelector('[data-value="position-' + i + '"]').textContent = peg.position + '%';
+         });
+         dialog.querySelector('[data-action="undo"]').disabled = !history.length;
+-        var original = gallery && state.preset === 'gallery-original';
++        var original = state.preset === 'lerp-original';
++        dialog.querySelector('.te-hint').textContent = original
++            ? 'Original colors: purple glow, teal target, red comparison, green correct. Editing a peg makes a custom palette.'
++            : 'Your four colors tint the existing glows. Page colors stay softened for readable text.';
+         opener.querySelector('.theme-label').textContent = ' Theme';
+         opener.querySelector('.theme-icon').textContent = state.mode === 'dark' ? '◐' : '◑';
+         if (gallery) {
+@@ -242,7 +262,7 @@
+         dialog.className = 'te-dialog';
+         dialog.setAttribute('aria-labelledby', 'te-title');
+         dialog.innerHTML = '<div class="te-heading"><div><h2 id="te-title">Theme</h2></div><button type="button" class="te-close" data-action="close" aria-label="Close theme editor">×</button></div>' +
+-            '<div class="te-presets"><label for="te-preset">Palette</label><select id="te-preset" name="preset">' + PRESETS.map(function (p) { return '<option value="' + p.id + '">' + p.name + '</option>'; }).join('') + (gallery ? '<option value="gallery-original">Original gallery</option>' : '') + '<option value="custom" disabled>Custom</option></select><button type="button" data-action="magic">ColorMagic</button></div>' +
++            '<div class="te-presets"><label for="te-preset">Palette</label><select id="te-preset" name="preset">' + PRESETS.map(function (p) { return '<option value="' + p.id + '">' + p.name + '</option>'; }).join('') + '<option value="lerp-original">Original lerp</option>' + '<option value="custom" disabled>Custom</option></select><button type="button" data-action="magic">ColorMagic</button></div>' +
+             '<fieldset class="te-mode"><legend>Appearance</legend><label><input type="radio" name="mode" value="dark"> Dark</label><label><input type="radio" name="mode" value="light"> Light</label></fieldset>' +
+             '<div class="te-preview" role="img" aria-label="Your selected gradient colors"></div>' +
+             '<section class="te-details" aria-labelledby="te-gradient-title"><h3 id="te-gradient-title">Gradient</h3><div class="te-tuning">' +
+@@ -319,7 +339,7 @@
+             if (!action) return;
+             if (action.dataset.action === 'close') closeEditor();
+             if (action.dataset.action === 'magic') commit(colorMagic(state));
+-            if (action.dataset.action === 'reset') commit(gallery ? originalGallery() : preset('dark'));
++            if (action.dataset.action === 'reset') commit(originalLerp());
+             if (action.dataset.action === 'undo' && history.length) {
+                 state = history.pop(); draftStart = null; apply(); save(); sync();
+             }
+@@ -338,7 +358,7 @@
+         dialog.addEventListener('input', function (event) { updateInput(event.target); });
+         dialog.addEventListener('change', function (event) {
+             var input = event.target;
+-            if (input.name === 'preset') { commit(input.value === 'gallery-original' && gallery ? originalGallery() : preset(input.value)); return; }
++            if (input.name === 'preset') { commit(input.value === 'lerp-original' ? originalLerp() : preset(input.value)); return; }
+             if (input.name === 'mode') { var next = clone(state); next.mode = input.value; next.preset = 'custom'; commit(next); return; }
+             updateInput(input);
+             if (draftStart) { remember(draftStart); draftStart = null; sync(); }
