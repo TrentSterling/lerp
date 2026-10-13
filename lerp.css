@@ -3,7 +3,7 @@ html[data-tront-theme-surface="lerp"] {
     --item-bg: var(--te-panel-fill);
     --lerp-track: var(--te-elem);
 }
-html[data-tront-theme-surface="lerp"] body {
+html[data-tront-theme-editor][data-tront-theme-surface="lerp"] body {
     padding-top: 92px;
     background-image: none;
     background-color: var(--bg-color);
