@@ -29,12 +29,14 @@ test('Lerp combines the About content and game discovery in one semantic footer 
     assert.match(discoveryRegion[0], /<h3>More from Tront<\/h3>/);
     assert.match(discoveryRegion[0], /<h3 class="tront-discovery__games-title">Games<\/h3>/);
     assert.match(discoveryRegion[0], /data-tront-discovery-cards/);
-    assert.match(discoveryRegion[0], /data-tront-discovery-status role="status" aria-live="polite"/);
+    assert.doesNotMatch(discoveryRegion[0], /data-tront-discovery-status|Previewing CraftMine/i);
     assert.match(discoveryRegion[0], /href="\/craftmine\/"/);
     assert.match(discoveryRegion[0], /href="\/smear\/"/);
     assert.doesNotMatch(html, /class="tront-about"|About\s*&middot;\s*More by Tront|More to play/i);
     assert.doesNotMatch(discoveryRegion[0], /\.mp4|<video\b|archive|earlier build|V16 footage/i);
     assert.doesNotMatch(discoveryRegion[0], /Featured game|Featured prototype|Quick pick|Open links directly/i);
+    assert.match(html, /id="bad-sims" class="sim-container" data-tront-discovery-game-surface/);
+    assert.match(html, /id="good-sims" class="sim-container" data-tront-discovery-game-surface/);
     assert.match(html, /<link rel="stylesheet" href="tront-about-discovery\.css">/);
     assert.match(html, /<script src="tront-about-discovery\.js"><\/script>/);
 });
