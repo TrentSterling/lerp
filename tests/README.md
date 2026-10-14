@@ -12,9 +12,14 @@ session/focus code stay byte-for-byte identical to the released editor.
 Run `node --test tests/*.test.cjs` for deterministic math and source contracts.
 Run `node tests/browser.cjs` with Playwright and Chrome installed for rendering,
 all six canvases, themes, modal focus, persistence, mobile overflow and original
-composition checks. The browser suite needs `LERP_BASELINE_ROOT` containing the
-original repository and `LERP_SHARED_ROOT` containing root-site shared assets.
-CI checks out both at explicit commits. `LERP_SCREENSHOTS` selects evidence output.
+composition checks. It also verifies lazy discovery previews, session-stable
+selection, keyboard and touch behavior, poster-only preferences, blocked-playback
+fallback, and media-source release. The browser suite needs `LERP_BASELINE_ROOT`
+containing the original repository and `LERP_SHARED_ROOT` containing root-site
+shared assets. `LERP_DISCOVERY_MEDIA` may point to poster fixtures; absent files
+use generated local posters and MP4 requests intentionally fail for fallback
+checks. CI checks out both source revisions. `LERP_SCREENSHOTS` selects evidence
+output.
 
 The stationary-target closed forms in `smoothing.js` are equivalent to repeated
 updates. This avoids unbounded catch-up loops after long frames while preserving

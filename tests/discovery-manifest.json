@@ -1,0 +1,12 @@
+{
+  "upstreamRepository": "TrentSterling/trentsterling.github.io",
+  "upstreamCommit": "af3958a591e18b0126904fffd892b11974ef0dd5",
+  "upstreamJavascriptPath": "assets/js/tront-about-discovery.js",
+  "upstreamJavascriptSha256": "69c727fdeff8bc33e75e31c45292f83bb6c8d7bdd1ca20943fc0d99d6414ba80",
+  "localJavascriptPath": "tront-about-discovery.js",
+  "localJavascriptSha256": "69c727fdeff8bc33e75e31c45292f83bb6c8d7bdd1ca20943fc0d99d6414ba80",
+  "upstreamCssPath": "assets/css/tront-about-discovery.css",
+  "upstreamCssSha256": "036ad29ceb11ef5f1088cc9ae36504fa8d296ce6ed46946d9087c13cf30328ae",
+  "localCssPath": "tront-about-discovery.css",
+  "localCssSha256": "036ad29ceb11ef5f1088cc9ae36504fa8d296ce6ed46946d9087c13cf30328ae"
+}
