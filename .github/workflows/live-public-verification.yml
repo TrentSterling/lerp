@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - codex/public-live-verify-20261014
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
