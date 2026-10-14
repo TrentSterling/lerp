@@ -1,0 +1,247 @@
+name: Live public discovery verification
+
+on:
+  push:
+    branches:
+      - codex/public-live-verify-20261014
+
+permissions:
+  contents: read
+
+jobs:
+  live-public-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Check out the verification branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Check out the exact shared source revision
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: TrentSterling/trentsterling.github.io
+          ref: fcda637550b9237140c89f9e42465ddd1cb07bf0
+          path: .local/shared
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /assets/css/tront-about-discovery.css
+            /assets/js/tront-about-discovery.js
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install pinned Playwright and Chrome
+        run: |
+          npm install --prefix "$RUNNER_TEMP/live-checks" --no-save --package-lock=false --ignore-scripts playwright@1.62.0
+          node "$RUNNER_TEMP/live-checks/node_modules/playwright/cli.js" install --with-deps chrome
+          echo "NODE_PATH=$RUNNER_TEMP/live-checks/node_modules" >> "$GITHUB_ENV"
+      - name: Verify deployed asset hashes, three cards, and real media bytes
+        run: timeout 360s node <<'NODE'
+          'use strict';
+          const assert = require('node:assert/strict');
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const { chromium } = require('playwright');
+          const manifest = JSON.parse(fs.readFileSync('tests/discovery-manifest.json', 'utf8'));
+          const origin = 'https://tront.xyz';
+          const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
+
+          async function fetchBytes(url, options) {
+            const response = await fetch(url, Object.assign({ redirect: 'follow', cache: 'no-store' }, options || {}));
+            assert.equal(response.status, 200, url + ' HTTP status');
+            return { response, bytes: Buffer.from(await response.arrayBuffer()) };
+          }
+
+          async function checkAsset(label, url, localPath, expectedHash) {
+            const localBytes = fs.readFileSync(localPath);
+            assert.equal(hash(localBytes), expectedHash, label + ' checked-in source hash');
+            const result = await fetchBytes(url);
+            const liveHash = hash(result.bytes);
+            assert.equal(liveHash, expectedHash, label + ' deployed hash');
+            console.log('PUBLIC_ASSET ' + JSON.stringify({
+              label,
+              url,
+              status: result.response.status,
+              contentType: result.response.headers.get('content-type'),
+              bytes: result.bytes.length,
+              sha256: liveHash
+            }));
+            return liveHash;
+          }
+
+          (async () => {
+            const sharedJs = await checkAsset(
+              'shared-js',
+              origin + '/' + manifest.upstreamJavascriptPath,
+              path.join('.local/shared', manifest.upstreamJavascriptPath),
+              manifest.upstreamJavascriptSha256
+            );
+            const lerpJs = await checkAsset(
+              'lerp-vendored-js',
+              origin + '/lerp/' + manifest.localJavascriptPath,
+              manifest.localJavascriptPath,
+              manifest.localJavascriptSha256
+            );
+            const sharedCss = await checkAsset(
+              'shared-css',
+              origin + '/' + manifest.upstreamCssPath,
+              path.join('.local/shared', manifest.upstreamCssPath),
+              manifest.upstreamCssSha256
+            );
+            const lerpCss = await checkAsset(
+              'lerp-vendored-css',
+              origin + '/lerp/' + manifest.localCssPath,
+              manifest.localCssPath,
+              manifest.localCssSha256
+            );
+            assert.equal(sharedJs, lerpJs, 'shared and Lerp JavaScript bytes match');
+            assert.equal(sharedCss, lerpCss, 'shared and Lerp CSS bytes match');
+
+            const browser = await chromium.launch({
+              headless: true,
+              args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required']
+            });
+            const page = await browser.newPage({
+              viewport: { width: 1440, height: 1000 },
+              reducedMotion: 'no-preference'
+            });
+            const mp4Requests = [];
+            const mediaResponses = [];
+            const pageErrors = [];
+            page.on('request', request => {
+              const url = new URL(request.url());
+              if (/\.mp4$/i.test(url.pathname)) mp4Requests.push(url.pathname + url.search);
+            });
+            page.on('response', response => {
+              const url = new URL(response.url());
+              if (url.pathname.startsWith('/games/media/')) {
+                mediaResponses.push({
+                  path: url.pathname,
+                  status: response.status(),
+                  contentType: response.headers()['content-type'] || ''
+                });
+              }
+            });
+            page.on('pageerror', error => pageErrors.push(error.message));
+
+            try {
+              const pageResponse = await page.goto(origin + '/lerp/', {
+                waitUntil: 'domcontentloaded',
+                timeout: 60000
+              });
+              assert.equal(pageResponse && pageResponse.status(), 200, 'public Lerp route returns HTTP 200');
+              await page.locator('.tront-discovery__card').first().waitFor({ state: 'attached', timeout: 30000 });
+              const ids = await page.locator('.tront-discovery__card').evaluateAll(cards =>
+                cards.map(card => card.getAttribute('data-tront-discovery-game'))
+              );
+              const randomId = ids[2];
+              assert.equal(ids.length, 3, 'exactly three cards render');
+              assert.deepEqual(ids.slice(0, 2), ['craftmine', 'smear'], 'featured cards stay fixed');
+              assert.ok(['inkride', 'tinytreads', 'tinyrise'].includes(randomId), 'third card is an allowed random game');
+              assert.equal(new Set(ids).size, 3, 'card selection has no duplicates');
+
+              await page.waitForTimeout(1200);
+              assert.equal(mp4Requests.length, 0, 'no MP4 is requested before discovery cards become visible');
+              await page.locator('[data-tront-discovery]').scrollIntoViewIfNeeded();
+              await page.waitForFunction(() => {
+                const cards = Array.from(document.querySelectorAll('.tront-discovery__card'));
+                return cards.length === 3 && cards.every(card => {
+                  const image = card.querySelector('.tront-discovery__poster');
+                  return image && image.complete && image.naturalWidth > 0;
+                });
+              }, null, { timeout: 30000 });
+
+              await page.waitForFunction(() => {
+                const ids = ['craftmine', document.querySelectorAll('.tront-discovery__card')[2]?.getAttribute('data-tront-discovery-game')];
+                return ids.every(id => {
+                  const card = document.querySelector('[data-tront-discovery-game="' + id + '"]');
+                  const video = card && card.querySelector('video[data-tront-discovery-video][src]');
+                  return video && !video.paused && !video.hidden && video.readyState >= 2 &&
+                    video.currentTime > 0.15 && video.videoWidth > 0 &&
+                    video.getVideoPlaybackQuality().totalVideoFrames > 5;
+                });
+              }, null, { timeout: 45000 });
+
+              const details = await page.locator('.tront-discovery__card').evaluateAll(cards => cards.map(card => {
+                const video = card.querySelector('video[data-tront-discovery-video][src]');
+                const image = card.querySelector('.tront-discovery__poster');
+                return {
+                  game: card.getAttribute('data-tront-discovery-game'),
+                  title: card.querySelector('.tront-discovery__title')?.innerText,
+                  href: card.querySelector('.tront-discovery__title a')?.getAttribute('href'),
+                  poster: image ? { loaded: image.complete && image.naturalWidth > 0, width: image.naturalWidth } : null,
+                  video: video ? {
+                    source: video.getAttribute('src'),
+                    currentTime: video.currentTime,
+                    readyState: video.readyState,
+                    width: video.videoWidth,
+                    decodedFrames: video.getVideoPlaybackQuality().totalVideoFrames
+                  } : null
+                };
+              }));
+              assert.equal(details.find(card => card.game === 'smear')?.video, null, 'SMEAR stays poster-only');
+              assert.deepEqual(
+                details.filter(card => card.video).map(card => card.game).sort(),
+                ['craftmine', randomId].sort(),
+                'only CraftMine and the selected random game have video'
+              );
+              assert.ok(details.every(card => card.poster && card.poster.loaded), 'all three posters decode');
+              const requestedPaths = Array.from(new Set(mp4Requests.map(url => url.split('?')[0]))).sort();
+              const expectedPaths = [
+                '/games/media/craftmine-2025.mp4',
+                randomId === 'inkride' ? '/games/media/inkride-2026.mp4' :
+                  randomId === 'tinytreads' ? '/games/media/tiny-treads-2026.mp4' :
+                    '/games/media/tinyrise-2026.mp4'
+              ].sort();
+              assert.deepEqual(requestedPaths, expectedPaths, 'only the two selected MP4s are requested');
+              assert.deepEqual(pageErrors, [], 'public page has no JavaScript errors');
+
+              const mp4ByGame = {
+                craftmine: '/games/media/craftmine-2025.mp4?v=741b400e1a9b',
+                inkride: '/games/media/inkride-2026.mp4?v=1590f82ebd34',
+                tinytreads: '/games/media/tiny-treads-2026.mp4?v=754ee2ee465a',
+                tinyrise: '/games/media/tinyrise-2026.mp4?v=7c59e1b5395f'
+              };
+              const byteChecks = [];
+              for (const id of ['craftmine', randomId]) {
+                const url = origin + mp4ByGame[id];
+                const response = await fetch(url, {
+                  headers: { Range: 'bytes=0-65535' },
+                  redirect: 'follow',
+                  cache: 'no-store'
+                });
+                assert.ok(response.status === 200 || response.status === 206, url + ' range status');
+                const bytes = Buffer.from(await response.arrayBuffer());
+                assert.ok(bytes.length > 4096, url + ' returned actual media bytes');
+                assert.equal(bytes.subarray(4, 8).toString('ascii'), 'ftyp', url + ' is an ISO BMFF MP4');
+                byteChecks.push({
+                  game: id,
+                  status: response.status,
+                  contentType: response.headers.get('content-type'),
+                  bytes: bytes.length,
+                  ftyp: bytes.subarray(4, 8).toString('ascii')
+                });
+              }
+              const result = {
+                pageStatus: pageResponse.status(),
+                cards: ids,
+                mediaRequests: requestedPaths,
+                mediaResponses: mediaResponses.filter(item => item.path.endsWith('.mp4')),
+                videoDecode: details.filter(card => card.video).map(card => ({ game: card.game, ...card.video })),
+                posters: details.map(card => ({ game: card.game, ...card.poster })),
+                actualMp4Bytes: byteChecks,
+                sha256: { sharedJs, lerpJs, sharedCss, lerpCss }
+              };
+              console.log('LIVE_PUBLIC_VERIFICATION ' + JSON.stringify(result));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error && error.stack ? error.stack : error);
+            process.exitCode = 1;
+          });
+          NODE
