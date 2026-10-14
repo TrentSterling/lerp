@@ -59,6 +59,13 @@ async function runDiscoveryChecks(browser,host,report){
         await waitForDiscoveryPosters(page);
         const initial=await page.locator('.tront-discovery__card').evaluateAll(cards=>cards.map(card=>card.dataset.trontDiscoveryGame));
         assert.deepEqual(initial,['craftmine','smear','inkride']);
+        assert.equal(await page.locator('.tront-discovery__kind,.tront-discovery__eyebrow,.tront-discovery__open').count(),0,'the strip should use one heading and avoid redundant labels and links');
+        assert.equal(await page.locator('.tront-discovery__status').innerText(),'','the repeated footer instruction should be absent');
+        assert.ok((await page.locator('.tront-discovery__intro').boundingBox()).height<30,'the preview instruction should stay to one line');
+        const previewButton=page.locator('.tront-discovery__preview').first();
+        const previewBox=await previewButton.boundingBox();
+        assert.ok(previewBox.width>=44&&previewBox.height>=44,'the compact preview icon must retain a 44px hit target');
+        assert.equal(await previewButton.getAttribute('aria-label'),'Play CraftMine preview');
         assert.equal(mp4Requests(loggedRequests).length,0,'no MP4 may load before a preview interaction');
         const posterPaths=[...new Set(loggedRequests.filter(url=>/\.webp(?:\?|$)/i.test(url)).map(url=>url.split('?')[0]))].sort();
         assert.deepEqual(posterPaths,['/games/media/craftmine-2025.webp','/games/media/inkride-2026.webp','/games/media/smear-2026.webp']);
@@ -84,7 +91,12 @@ async function runDiscoveryChecks(browser,host,report){
         assert.equal(await page.locator('[data-tront-discovery-video]').count(),1,'switching cards must reuse one video element');
         assert.equal(await page.locator('[data-tront-discovery-video]').evaluate(video=>video.closest('[data-tront-discovery-game]').dataset.trontDiscoveryGame),'smear');
         assert.equal(await page.locator('[data-tront-discovery-video]').getAttribute('src'),null,'blocked playback must release the MP4 source');
-        assert.match(await page.locator('[data-tront-discovery-game="smear"]').innerText(),/Archival V16 footage, sped up 2×\. Current source is V47\.1\./);
+        const smearCard=page.locator('[data-tront-discovery-game="smear"]');
+        assert.match(await smearCard.locator('.tront-discovery__description').innerText(),/Grab dummies, break things and drag the mess around\./);
+        assert.equal(await smearCard.locator('.tront-discovery__archive-note').innerText(),'This edited preview is from an earlier build.');
+        await smearCard.locator('.tront-discovery__archive-details summary').click();
+        assert.equal(await smearCard.locator('.tront-discovery__archive-details p').innerText(),'The clip shows V16 footage; its shots are sped up 2×–2.5×.');
+        assert.doesNotMatch(await smearCard.innerText(),/V47\.1|current source/i);
         assert.equal(await page.locator('[data-tront-discovery-game="smear"] .tront-discovery__poster').evaluate(image=>image.complete&&image.naturalWidth>0),true);
 
         const offscreenPreview=page.waitForRequest(request=>request.url().includes('/games/media/craftmine-2025.mp4'));
@@ -116,8 +128,10 @@ async function runDiscoveryChecks(browser,host,report){
         await page.locator('.tront-discovery__image-link').first().focus();
         await page.keyboard.press('Tab');
         await page.waitForFunction(()=>document.querySelector('[data-tront-discovery-status]').textContent.includes('could not play'));
+        const focusState=await page.locator('.tront-discovery__preview').first().evaluate(button=>({active:document.activeElement===button,outline:getComputedStyle(button).outlineWidth,style:getComputedStyle(button).outlineStyle}));
+        assert.equal(focusState.active,true);assert.equal(focusState.outline,'3px');assert.equal(focusState.style,'solid');
         assert.ok(mp4Requests(requests).some(url=>url.includes('craftmine-2025.mp4')),'keyboard focus must activate the focused card preview');
-        report.checks.push({aboutDiscoveryKeyboardFocus:true});
+        report.checks.push({aboutDiscoveryKeyboardFocus:true,visibleFocus:true});
     }finally{await keyboard.close();}
 
     const reduced=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
@@ -185,6 +199,8 @@ async function runDiscoveryChecks(browser,host,report){
         await page.locator('#game-input').focus();await page.keyboard.press('g');await page.locator('#game-input').click();
         assert.deepEqual(await page.evaluate(()=>window.__gameInputs),['keydown','pointerdown'],'game keyboard and pointer input should still reach the page');
         await page.locator('#about summary').click();
+        await page.waitForFunction(()=>document.querySelector('#about').open);
+        await page.waitForFunction(()=>document.querySelectorAll('.tront-discovery__card').length===3);
         await waitForDiscoveryPosters(page);
         assert.equal(await page.locator('.tront-discovery__card').count(),3,'opening About should lazily mount the strip');
         const preview=page.waitForRequest(request=>request.url().includes('/games/media/craftmine-2025.mp4'));
@@ -263,7 +279,7 @@ async function runDiscoveryChecks(browser,host,report){
                         const parse=v=>(v.match(/[\d.]+/g)||[]).slice(0,3).map(Number);
                         const ratio=(a,b)=>window.TrontThemeEditor.contrast(a,b);
                         const checks=[];
-                        for(const sel of ['.explanation-box p','.explanation-box strong','.explanation-box a','.card-section h2','.demo-subtext.bad','.demo-subtext.good','.sim-readout','pre code .keyword','pre code .type','pre code .comment','.tront-discovery__description','.tront-discovery__archive-note']){
+                        for(const sel of ['.explanation-box p','.explanation-box strong','.explanation-box a','.card-section h2','.demo-subtext.bad','.demo-subtext.good','.sim-readout','pre code .keyword','pre code .type','pre code .comment','.tront-discovery__description','.tront-discovery__archive-note','.tront-discovery__archive-details summary','.tront-discovery__archive-details p']){
                             const e=document.querySelector(sel),s=getComputedStyle(e),card=e.closest('.card-section,.explanation-box');
                             const panel=parse(getComputedStyle(document.documentElement).getPropertyValue('--te-panel'));
                             const hex=getComputedStyle(document.documentElement).getPropertyValue('--te-panel').trim();

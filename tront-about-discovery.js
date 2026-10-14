@@ -11,14 +11,15 @@
             id: 'craftmine', title: 'CraftMine', year: '2025', kind: 'Featured game',
             href: '/craftmine/', poster: '/games/media/craftmine-2025.webp?v=6548c556b7e9',
             preview: '/games/media/craftmine-2025.mp4?v=741b400e1a9b',
-            description: 'AI-generated Minecraft clone with P2P multiplayer: 46 blocks, 36 mobs and 19 weapons. Runs in your browser.'
+            description: 'Build, dig, and blow holes in a voxel world, solo or with friends.'
         },
         {
             id: 'smear', title: 'SMEAR', year: '2026', kind: 'Featured prototype',
             href: '/smear/', poster: '/games/media/smear-2026.webp?v=475c3f008f06',
             preview: '/games/media/smear-2026.mp4?v=687dcd477595',
-            description: 'A physics playground for contact smears, wall splashes and dripping stains.',
-            archivalNote: 'Archival V16 footage, sped up 2×. Current source is V47.1.'
+            description: 'Grab dummies, break things and drag the mess around.',
+            archivalNote: 'This edited preview is from an earlier build.',
+            archivalDetails: 'The clip shows V16 footage; its shots are sped up 2×–2.5×.'
         },
         {
             id: 'inkride', title: 'INKRIDE', year: '2026', kind: 'Quick pick',
@@ -30,7 +31,7 @@
             id: 'tinytreads', title: 'Tiny Treads', year: '2026', kind: 'Quick pick',
             href: '/tinytreads/', poster: '/games/media/tiny-treads-2026.webp?v=695d0c68976e',
             preview: '/games/media/tiny-treads-2026.mp4?v=754ee2ee465a',
-            description: 'Turn-based artillery with destructible terrain and 400 wild weapons.'
+            description: 'Trade artillery shots across destructible terrain in turn-based battles.'
         },
         {
             id: 'tinyrise', title: 'Tinyrise', year: '2026', kind: 'Quick pick',
@@ -175,9 +176,10 @@
         var game = card._trontDiscoveryGame;
         var button = card._trontDiscoveryButton;
         button.textContent = playing ? 'Stop preview' : 'Preview';
+        button.setAttribute('data-playing', playing ? 'true' : 'false');
         button.setAttribute('aria-label', playing
             ? 'Stop ' + game.title + ' preview'
-            : (game.archivalNote ? 'Play archival preview of SMEAR V16 footage, sped up' : 'Play ' + game.title + ' preview'));
+            : (game.archivalNote ? 'Play SMEAR preview from an earlier edited build' : 'Play ' + game.title + ' preview'));
     }
 
     function getSharedVideo() {
@@ -209,7 +211,7 @@
             try { sharedVideo.load(); } catch (_) { /* The source is already detached. */ }
         }
         setButtonState(previous, false);
-        if (announce) setStatus(previous._trontDiscoveryHost, 'Preview stopped; the poster is still available.');
+        if (announce) setStatus(previous._trontDiscoveryHost, 'Preview stopped; you can still open the game from its title or poster.');
     }
 
     function failPreview(generation) {
@@ -217,7 +219,7 @@
         var card = activeCard;
         var title = card._trontDiscoveryGame.title;
         releaseCurrent(false);
-        setStatus(card._trontDiscoveryHost, 'The ' + title + ' preview could not play. The poster is still available; open the game to explore.');
+        setStatus(card._trontDiscoveryHost, 'The ' + title + ' preview could not play, but you can still open the game from its title or poster.');
     }
 
     function activate(card) {
@@ -240,8 +242,8 @@
             if (generation !== activeGeneration || activeCard !== card) return;
             video.hidden = false;
             setStatus(card._trontDiscoveryHost, game.archivalNote
-                ? 'Playing archival SMEAR V16 footage at 2× speed. Current source is V47.1.'
-                : 'Playing ' + game.title + ' preview. Open the game link for the full experience.');
+                ? 'Playing the edited preview from an earlier SMEAR build; its V16 footage and 2×–2.5× shot speeds are explained in the caption.'
+                : 'Playing ' + game.title + '; open its title or poster to visit the game.');
         };
         video.onerror = function () { failPreview(generation); };
         video.setAttribute('src', game.preview);
@@ -249,7 +251,7 @@
         video.load();
         setButtonState(card, true);
         setStatus(card._trontDiscoveryHost, game.archivalNote
-            ? 'Loading archival SMEAR V16 footage at 2× speed; current source is V47.1.'
+            ? 'Loading the edited preview from an earlier SMEAR build.'
             : 'Loading ' + game.title + ' preview.');
         try {
             var playback = video.play();
@@ -293,16 +295,15 @@
         button.type = 'button';
         button.className = 'tront-discovery__preview';
         button.textContent = 'Preview';
+        button.setAttribute('data-playing', 'false');
         button.setAttribute('aria-label', game.archivalNote
-            ? 'Play archival preview of SMEAR V16 footage, sped up'
+            ? 'Play SMEAR preview from an earlier edited build'
             : 'Play ' + game.title + ' preview');
         button.hidden = !previewAllowed();
         media.appendChild(button);
         article._trontDiscoveryButton = button;
 
         var content = createText('div', 'tront-discovery__content');
-        var kind = createText('p', 'tront-discovery__kind', game.kind);
-        content.appendChild(kind);
         var heading = doc.createElement('h3');
         heading.className = 'tront-discovery__title';
         var titleLink = doc.createElement('a');
@@ -312,22 +313,23 @@
         content.appendChild(heading);
         content.appendChild(createText('p', 'tront-discovery__description', game.description));
         if (game.archivalNote) content.appendChild(createText('p', 'tront-discovery__archive-note', game.archivalNote));
-        var openLink = doc.createElement('a');
-        openLink.className = 'tront-discovery__open';
-        openLink.href = game.href;
-        openLink.textContent = 'Open ' + game.title;
-        content.appendChild(openLink);
+        if (game.archivalDetails) {
+            var archiveDetails = createText('details', 'tront-discovery__archive-details');
+            archiveDetails.appendChild(createText('summary', null, 'About this preview'));
+            archiveDetails.appendChild(createText('p', null, game.archivalDetails));
+            content.appendChild(archiveDetails);
+        }
         article.appendChild(media);
         article.appendChild(content);
 
         button.addEventListener('click', function () {
             if (activeCard === article) releaseCurrent(true);
-            else if (!activate(article) && !previewAllowed()) setStatus(host, 'Previews are off when reduced motion or Save-Data is enabled. The posters and game links still work.');
+            else if (!activate(article) && !previewAllowed()) setStatus(host, 'Previews are off with reduced motion or Save-Data, but the posters and links still work.');
         });
         article.addEventListener('pointerenter', function (event) {
             if (event.pointerType === 'touch') return;
             state.hovered = true;
-            if (!activate(article) && !previewAllowed()) setStatus(host, 'Previews are off when reduced motion or Save-Data is enabled. The posters and game links still work.');
+            if (!activate(article) && !previewAllowed()) setStatus(host, 'Previews are off with reduced motion or Save-Data, but the posters and links still work.');
         });
         article.addEventListener('pointerleave', function (event) {
             if (event.pointerType === 'touch') return;
@@ -339,7 +341,7 @@
             try { focusVisible = event.target.matches && event.target.matches(':focus-visible'); } catch (_) { /* Keyboard modality remains the fallback. */ }
             if (!focusVisible) return;
             state.focused = true;
-            if (!activate(article) && !previewAllowed()) setStatus(host, 'Previews are off when reduced motion or Save-Data is enabled. The posters and game links still work.');
+            if (!activate(article) && !previewAllowed()) setStatus(host, 'Previews are off with reduced motion or Save-Data, but the posters and links still work.');
         });
         article.addEventListener('focusout', function (event) {
             if (event.relatedTarget && article.contains(event.relatedTarget)) return;
@@ -354,7 +356,7 @@
         for (var i = 0; i < roots.length; i += 1) {
             var buttons = roots[i].querySelectorAll('.tront-discovery__preview');
             for (var j = 0; j < buttons.length; j += 1) buttons[j].hidden = !allowed;
-            if (!allowed) setStatus(roots[i], 'Previews are off when reduced motion or Save-Data is enabled. The posters and game links still work.');
+            if (!allowed) setStatus(roots[i], 'Previews are off with reduced motion or Save-Data, but the posters and links still work.');
         }
         if (!allowed) releaseCurrent(false);
     }
@@ -407,7 +409,7 @@
             if (visibilityObserver) visibilityObserver.observe(card);
         }
         roots.push(host);
-        setStatus(host, 'Hover or focus a card to preview it. Open links work independently.');
+        setStatus(host, '');
     }
 
     function start() {

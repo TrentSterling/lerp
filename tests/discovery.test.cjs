@@ -18,6 +18,9 @@ test('Lerp opts in beside the protected About block and keeps direct links in ma
     assert.match(html, /<script src="tront-about-discovery\.js"><\/script>/);
     assert.match(discoveryRegion[0], /data-tront-discovery-cards/);
     assert.match(discoveryRegion[0], /data-tront-discovery-status role="status" aria-live="polite"/);
+    assert.match(discoveryRegion[0], /<h2 id="lerp-discovery-title">More to play<\/h2>/);
+    assert.match(discoveryRegion[0], /Open links directly or preview on hover, focus, or tap\./);
+    assert.doesNotMatch(discoveryRegion[0], /tront-discovery__eyebrow|Featured game|Featured prototype|Quick pick/);
     assert.match(discoveryRegion[0], /href="\/craftmine\/"/);
     assert.match(discoveryRegion[0], /href="\/smear\/"/);
     assert.doesNotMatch(discoveryRegion[0], /\.mp4|<video\b/i, 'initial markup must not request previews');
