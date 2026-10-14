@@ -46,7 +46,7 @@ async function overflow(page){return page.evaluate(()=>({width:innerWidth,scroll
 async function waitForDiscoveryPosters(page){
     await page.waitForFunction(()=>{
         const cards=[...document.querySelectorAll('.tront-discovery__card')];
-        return cards.length===4&&cards.every(card=>{const img=card.querySelector('.tront-discovery__poster');return img&&img.complete&&img.naturalWidth>0;});
+        return cards.length===3&&cards.every(card=>{const img=card.querySelector('.tront-discovery__poster');return img&&img.complete&&img.naturalWidth>0;});
     },null,{timeout:10000});
 }
 async function waitForDiscoveryVideoSource(page,min=1){
@@ -72,7 +72,7 @@ async function runDiscoveryChecks(browser,host,report){
         page.on('pageerror',error=>report.errors.push(error.message));
         await page.goto(host+'/lerp/',{waitUntil:'networkidle'});
         const initial=await page.locator('.tront-discovery__card').evaluateAll(items=>items.map(card=>card.dataset.trontDiscoveryGame));
-        assert.deepEqual(initial,['craftmine','smear','inkride','tinytreads']);
+        assert.deepEqual(initial,['craftmine','smear','inkride']);
         assert.equal(mp4Requests(requests).length,0,'no MP4 request before a discovery card is visible');
         assert.equal(await page.locator('[data-tront-discovery]').count(),1);
         assert.equal(await page.getByRole('heading',{name:'About Tront',level:2}).count(),1);
@@ -90,23 +90,23 @@ async function runDiscoveryChecks(browser,host,report){
         await page.locator('[data-tront-discovery]').scrollIntoViewIfNeeded();
         await waitForDiscoveryPosters(page);
         const posterPaths=[...new Set(requests.filter(url=>/\.webp(?:\?|$)/i.test(url)).map(url=>url.split('?')[0]))].sort();
-        assert.deepEqual(posterPaths,['/games/media/craftmine-2025.webp','/games/media/inkride-2026.webp','/games/media/smear-2026.webp','/games/media/tiny-treads-2026.webp']);
+        assert.deepEqual(posterPaths,['/games/media/craftmine-2025.webp','/games/media/inkride-2026.webp','/games/media/smear-2026.webp']);
         await waitForDiscoveryVideoSource(page);
         await page.waitForFunction(()=>!document.querySelector('[data-tront-discovery-game="craftmine"] [data-tront-discovery-video][src]'),null,{timeout:10000});
         assert.ok(mp4Requests(requests).length<=3,'at most three selected preview sources are requested concurrently');
         assert.equal(await page.locator('[data-tront-discovery-video][src]').count()<=3,true,'at most three videos are active');
-        assert.equal(mp4Requests(requests).some(url=>url.includes('tinyrise-2026')),false,'unselected random preview never downloads');
+        assert.equal(mp4Requests(requests).some(url=>url.includes('tinytreads-2026')||url.includes('tinyrise-2026')),false,'unselected random preview never downloads');
         assert.equal(await page.locator('[data-tront-discovery-game="craftmine"] .tront-discovery__poster').count(),1,'blocked playback leaves its poster');
         await page.evaluate(()=>window.scrollTo(0,0));
         await waitForNoDiscoveryVideoSources(page);
         await page.reload({waitUntil:'networkidle'});
-        assert.deepEqual(await page.locator('.tront-discovery__card').evaluateAll(items=>items.map(card=>card.dataset.trontDiscoveryGame)),initial,'the random pair remains stable after reload');
+        assert.deepEqual(await page.locator('.tront-discovery__card').evaluateAll(items=>items.map(card=>card.dataset.trontDiscoveryGame)),initial,'the random pick remains stable after reload');
         await page.locator('[data-tront-discovery]').scrollIntoViewIfNeeded();
         await waitForDiscoveryVideoSource(page);
         const hiddenSupported=await page.evaluate(()=>{try{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));return document.hidden;}catch(_){return false;}});
         assert.equal(hiddenSupported,true);
         await waitForNoDiscoveryVideoSources(page);
-        report.checks.push({aboutDiscovery:true,eagerMp4Requests:0,sessionStableRandomPair:initial.slice(2),selectedPosters:posterPaths,concurrentPreviewLimit:3,autoplayWhenVisible:true,blockedPlaybackFallsBackToPoster:true,sourceReleasedOffscreen:true,sourceReleasedWhenHidden:true,smearPosterOnly:true,unselectedRandomMediaSkipped:true});
+        report.checks.push({aboutDiscovery:true,eagerMp4Requests:0,sessionStableRandomPick:initial.slice(2),selectedPosters:posterPaths,concurrentPreviewLimit:3,autoplayWhenVisible:true,blockedPlaybackFallsBackToPoster:true,sourceReleasedOffscreen:true,sourceReleasedWhenHidden:true,smearPosterOnly:true,unselectedRandomMediaSkipped:true});
     }finally{releasePending.splice(0).forEach(resolve=>resolve());await context.close();}
 
     const keyboard=await browser.newContext({viewport:{width:1280,height:900}});
@@ -160,7 +160,7 @@ async function runDiscoveryChecks(browser,host,report){
         await page.locator('body').click({position:{x:12,y:12}});await page.keyboard.press('g');
         assert.deepEqual(await page.evaluate(()=>window.__gameInputs),['pointerdown','keydown']);
         await page.locator('#about summary').click();await page.waitForFunction(()=>document.querySelector('#about').open);
-        await page.waitForFunction(()=>document.querySelectorAll('.tront-discovery__card').length===4);await waitForDiscoveryPosters(page);
+        await page.waitForFunction(()=>document.querySelectorAll('.tront-discovery__card').length===3);await waitForDiscoveryPosters(page);
         await page.waitForFunction(()=>document.querySelector('[data-tront-discovery]')?.classList.contains('tront-discovery--lightweight'));
         assert.equal(mp4Requests(requests).length,0,'visible active-game surface keeps the discovery strip poster-only');
         await page.evaluate(()=>window.scrollTo(0,100));
