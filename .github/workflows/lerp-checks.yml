@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           repository: TrentSterling/trentsterling.github.io
-          ref: a421b5bfb817046c1ed10b0e26b29da2c7d94be0
+          ref: fcda637550b9237140c89f9e42465ddd1cb07bf0
           path: .local/shared
           persist-credentials: false
           sparse-checkout: assets
