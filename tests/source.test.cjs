@@ -21,7 +21,7 @@ test('original C# download and article outside narrow factual corrections are pr
     const paragraphs = old.match(article)[1].match(/<p>[\s\S]*?<\/p>/g);
     for (const p of paragraphs) {
         if (p.includes('<strong>The Second Mistake:')) continue;
-        assert.ok(html.includes(p.replace('"half-life" (?)', '"half-life" (h)')), p.slice(0, 100));
+        assert.ok(html.includes(p.replace('"half-life" (λ)', '"half-life" (h)')), p.slice(0, 100));
     }
     for (const code of old.matchAll(/<pre><code>([\s\S]*?)<\/code><\/pre>/g)) assert.ok(html.includes(code[0]));
     const beforeAbout = old.match(/<!-- tront-about:start -->([\s\S]*?)<!-- tront-about:end -->/);
