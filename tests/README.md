@@ -12,7 +12,7 @@ session/focus code stay byte-for-byte identical to the released editor.
 Run `node --test tests/*.test.cjs` for deterministic math and source contracts.
 Run `node tests/browser.cjs` with Playwright and Chrome installed for rendering,
 all six canvases, themes, modal focus, persistence, mobile overflow and original
-composition checks. It also verifies one consolidated About/discovery section, lazy previews on hover and keyboard focus, session-stable selection, poster-only SMEAR and reduced-motion/Save-Data preferences, blocked-playback fallback, media-source release, deferred mounting in closed disclosures, and independent accessible game links. The browser suite needs `LERP_BASELINE_ROOT`
+composition checks. It also verifies one consolidated About/discovery section, lazy previews on hover and keyboard focus, one session-stable random pick beside CraftMine and SMEAR, poster-only SMEAR and reduced-motion/Save-Data preferences, blocked-playback fallback, media-source release, deferred mounting in closed disclosures, and independent accessible game links. The browser suite needs `LERP_BASELINE_ROOT`
 containing the original repository and `LERP_SHARED_ROOT` containing root-site
 shared assets. `LERP_DISCOVERY_MEDIA` may point to poster fixtures; absent files
 use generated local posters and MP4 requests intentionally fail for fallback
