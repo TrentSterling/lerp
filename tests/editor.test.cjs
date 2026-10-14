@@ -4,7 +4,7 @@ const root = path.resolve(__dirname, '..');
 const upstream = fs.readFileSync(path.join(__dirname, 'fixtures/tront-theme-editor.upstream.js.txt'), 'utf8');
 const local = fs.readFileSync(path.join(root, 'lerp-editor.js'), 'utf8');
 const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, 'vendor-manifest.json')));
-const hash = s => crypto.createHash('sha256').update(s).digest('hex');
+const hash = s => crypto.createHash('sha256').update(s.replace(/\r\n/g, '\n')).digest('hex');
 test('local editor provenance matches the pinned upstream and documented derivative', () => {
     assert.equal(hash(upstream), manifest.upstreamSha256);
     assert.equal(hash(local), manifest.localSha256);

@@ -23,6 +23,13 @@ test('original C# download and article outside narrow factual corrections are pr
         if (p.includes('<strong>The Second Mistake:')) continue;
         assert.ok(html.includes(p.replace('"half-life" (λ)', '"half-life" (h)')), p.slice(0, 100));
     }
-    for (const code of old.matchAll(/<pre><code>([\s\S]*?)<\/code><\/pre>/g)) assert.ok(html.includes(code[0]));
-    assert.equal(html.match(/<!-- tront-about:start -->([\s\S]*)<!-- tront-about:end -->/)[1], old.match(/<!-- tront-about:start -->([\s\S]*)<!-- tront-about:end -->/)[1]);
+    const normalizedHtml = html.replace(/\r\n?/g, '\n');
+    for (const code of old.matchAll(/<pre><code>([\s\S]*?)<\/code><\/pre>/g)) assert.ok(normalizedHtml.includes(code[0].replace(/\r\n?/g, '\n')));
+    const beforeAbout = old.match(/<!-- tront-about:start -->([\s\S]*?)<!-- tront-about:end -->/);
+    const afterAbout = html.match(/<!-- tront-about:start -->([\s\S]*?)<!-- tront-about:end -->/);
+    assert.ok(beforeAbout && afterAbout, 'About markers remain around the redesigned footer area');
+    const oldJsonLd = beforeAbout[1].match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    const newJsonLd = afterAbout[1].match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    assert.ok(oldJsonLd && newJsonLd, 'About structured data remains present');
+    assert.equal(newJsonLd[1], oldJsonLd[1], 'About structured data remains unchanged');
 });
