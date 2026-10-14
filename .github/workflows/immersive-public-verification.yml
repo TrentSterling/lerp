@@ -1,0 +1,82 @@
+name: Immersive public three-card verification
+on:
+  push:
+    branches: [codex/immersive-public-verify-20261014]
+permissions:
+  contents: read
+jobs:
+  public-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - repo: deadends
+            sha: a547496c931a047c832a21d35165026df091025b
+          - repo: tinytreads
+            sha: 977b718513cdbd099093320e5e2bb170c9b2bb35
+          - repo: vibespace
+            sha: f51ea6a55f919826c32b833513fc06cb5e959a03
+          - repo: vibemaze
+            sha: 4c0ce6c7686c708860020e5543b0e370d0af36c4
+          - repo: gemstogether
+            sha: a611b47464c360a323ed4d41b7146321c3fdf009
+          - repo: tunnelrat
+            sha: d4f26268619bd964bf881ce1ebdf7bbaabe1ac08
+          - repo: breakmass
+            sha: 64bb29da6dca6108014d59fb3d61f638807fad88
+          - repo: tinyrise
+            sha: 481a99cd116ae35cb5d9c02643fe7a8c0eebbbc4
+          - repo: terrainlab
+            sha: fa4165c50350fe63b7ff4159d4fe5723bfc1e72a
+          - repo: vibecraft
+            sha: 77cecfddb11971ab0bc2b86566b1e663c63c78da
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: TrentSterling/${{ matrix.repo }}
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Verify contracts and exact public asset hashes
+        env:
+          GAME: ${{ matrix.repo }}
+        run: |
+          node --test tests/about-contract.cjs
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const m = require('./tests/about-manifest.json');
+          (async()=>{
+            assert.equal(m.upstreamCommit,'fcda637550b9237140c89f9e42465ddd1cb07bf0');
+            for (const [file,expected] of Object.entries(m.assets)) {
+              const url='https://tront.xyz/'+process.env.GAME+'/'+file;
+              const response=await fetch(url,{cache:'no-store'});
+              assert.equal(response.status,200,url);
+              const bytes=Buffer.from(await response.arrayBuffer());
+              const hash=crypto.createHash('sha256').update(bytes).digest('hex');
+              assert.equal(hash,expected,url);
+              assert.ok(bytes.equals(fs.readFileSync(file)),url+' equals exact merged source');
+              console.log('PUBLIC_ASSET',JSON.stringify({url,sha256:hash,bytes:bytes.length}));
+            }
+          })().catch(e=>{console.error(e);process.exitCode=1;});
+          NODE
+      - run: npm install --prefix "$RUNNER_TEMP/public-checks" --no-save --package-lock=false --ignore-scripts playwright@1.58.2
+      - run: |
+          node "$RUNNER_TEMP/public-checks/node_modules/playwright/cli.js" install --with-deps chromium
+          echo "NODE_PATH=$RUNNER_TEMP/public-checks/node_modules" >> "$GITHUB_ENV"
+      - name: Exercise deployed pages in four browser contexts
+        env:
+          TEST_URL: https://tront.xyz/${{ matrix.repo }}/
+        run: node tests/about-browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-about-${{ matrix.repo }}
+          path: tests/about-evidence/
