@@ -202,13 +202,13 @@
         <div class="card-section">
             <h2 id="comparison-heading">Fixed factor: <code>a = lerp(a, b, constant)</code></h2>
             <p id="comparison-note" class="demo-subtext bad">A fixed factor is applied once per simulated frame. More frames means faster convergence.</p>
-            <div id="bad-sims" class="sim-container"></div>
+            <div id="bad-sims" class="sim-container" data-tront-discovery-game-surface></div>
         </div>
         
         <div class="card-section">
             <h2>Correct Method: <code>a = lerp(a, b, 1 - 2<sup>-dt/halfLife</sup>)</code></h2>
             <p class="demo-subtext good">Exponential decay preserves the same convergence rate. Lower FPS still means fewer visible updates.</p>
-            <div id="good-sims" class="sim-container"></div>
+            <div id="good-sims" class="sim-container" data-tront-discovery-game-surface></div>
         </div>
 
         <div class="explanation-box">
@@ -304,7 +304,6 @@
     </div>
     <h3 class="tront-discovery__games-title">Games</h3>
     <div class="tront-discovery__grid" data-tront-discovery-cards></div>
-    <p class="tront-discovery__status" data-tront-discovery-status role="status" aria-live="polite"></p>
     <noscript><p class="tront-discovery__hub"><a href="/craftmine/">CraftMine</a> &middot; <a href="/smear/">SMEAR</a> &middot; <a href="/games/">More games and tools</a></p></noscript>
 </section>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Frame-Rate Independent Lerp", "alternateName": ["Frame-Rate Independent Lerp by Tront"], "url": "https://tront.xyz/lerp/", "description": "Why naive lerp smoothing breaks at different frame rates, and the fix.", "author": {"@type": "Person", "name": "Trent Sterling", "alternateName": "Tront", "url": "https://tront.xyz/"}, "publisher": {"@type": "Organization", "name": "Tront", "url": "https://tront.xyz/"}, "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "applicationCategory": "DeveloperApplication", "operatingSystem": "Web browser"}</script>
