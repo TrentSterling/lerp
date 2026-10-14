@@ -8,33 +8,31 @@
     var RANDOM_IDS = ['inkride', 'tinytreads', 'tinyrise'];
     var GAMES = [
         {
-            id: 'craftmine', title: 'CraftMine', year: '2025', kind: 'Featured game',
+            id: 'craftmine', title: 'CraftMine', year: '2025',
             href: '/craftmine/', poster: '/games/media/craftmine-2025.webp?v=6548c556b7e9',
             preview: '/games/media/craftmine-2025.mp4?v=741b400e1a9b',
             description: 'Build, dig, and blow holes in a voxel world, solo or with friends.'
         },
         {
-            id: 'smear', title: 'SMEAR', year: '2026', kind: 'Featured prototype',
+            id: 'smear', title: 'SMEAR', year: '2026',
             href: '/smear/', poster: '/games/media/smear-2026.webp?v=475c3f008f06',
-            preview: '/games/media/smear-2026.mp4?v=687dcd477595',
+            preview: null,
             description: 'Grab dummies, break things and drag the mess around.',
-            archivalNote: 'This edited preview is from an earlier build.',
-            archivalDetails: 'The clip shows V16 footage; its shots are sped up 2×–2.5×.'
         },
         {
-            id: 'inkride', title: 'INKRIDE', year: '2026', kind: 'Quick pick',
+            id: 'inkride', title: 'INKRIDE', year: '2026',
             href: '/inkride/', poster: '/games/media/inkride-2026.webp?v=c70ac4423864',
             preview: '/games/media/inkride-2026.mp4?v=1590f82ebd34',
             description: 'Draw tracks in ink, ride them and crash beautifully in a shared physics sketchbook.'
         },
         {
-            id: 'tinytreads', title: 'Tiny Treads', year: '2026', kind: 'Quick pick',
+            id: 'tinytreads', title: 'Tiny Treads', year: '2026',
             href: '/tinytreads/', poster: '/games/media/tiny-treads-2026.webp?v=695d0c68976e',
             preview: '/games/media/tiny-treads-2026.mp4?v=754ee2ee465a',
             description: 'Trade artillery shots across destructible terrain in turn-based battles.'
         },
         {
-            id: 'tinyrise', title: 'Tinyrise', year: '2026', kind: 'Quick pick',
+            id: 'tinyrise', title: 'Tinyrise', year: '2026',
             href: '/tinyrise/', poster: '/games/media/tinyrise-2026.webp?v=b27e4bc4479e',
             preview: '/games/media/tinyrise-2026.mp4?v=7c59e1b5395f',
             description: 'Build a city, then zoom in to follow one tiny life using its streets and stairs.'
@@ -53,7 +51,6 @@
     var activeGeneration = 0;
     var initialized = false;
     var visibilityObserver = null;
-    var roots = [];
 
     function findGame(id) {
         for (var i = 0; i < GAMES.length; i += 1) if (GAMES[i].id === id) return GAMES[i];
@@ -171,17 +168,6 @@
         if (status) status.textContent = message;
     }
 
-    function setButtonState(card, playing) {
-        if (!card || !card._trontDiscoveryButton) return;
-        var game = card._trontDiscoveryGame;
-        var button = card._trontDiscoveryButton;
-        button.textContent = playing ? 'Stop preview' : 'Preview';
-        button.setAttribute('data-playing', playing ? 'true' : 'false');
-        button.setAttribute('aria-label', playing
-            ? 'Stop ' + game.title + ' preview'
-            : (game.archivalNote ? 'Play SMEAR preview from an earlier edited build' : 'Play ' + game.title + ' preview'));
-    }
-
     function getSharedVideo() {
         if (sharedVideo) return sharedVideo;
         sharedVideo = doc.createElement('video');
@@ -197,9 +183,8 @@
         return sharedVideo;
     }
 
-    function releaseCurrent(announce) {
+    function releaseCurrent() {
         if (!activeCard) return;
-        var previous = activeCard;
         activeCard = null;
         activeGeneration += 1;
         if (sharedVideo) {
@@ -210,16 +195,14 @@
             sharedVideo.removeAttribute('src');
             try { sharedVideo.load(); } catch (_) { /* The source is already detached. */ }
         }
-        setButtonState(previous, false);
-        if (announce) setStatus(previous._trontDiscoveryHost, 'Preview stopped; you can still open the game from its title or poster.');
     }
 
     function failPreview(generation) {
         if (generation !== activeGeneration || !activeCard) return;
         var card = activeCard;
         var title = card._trontDiscoveryGame.title;
-        releaseCurrent(false);
-        setStatus(card._trontDiscoveryHost, 'The ' + title + ' preview could not play, but you can still open the game from its title or poster.');
+        releaseCurrent();
+        setStatus(card._trontDiscoveryHost, title + ' preview unavailable.');
     }
 
     function activate(card) {
@@ -228,7 +211,7 @@
         if (activeCard === card && sharedVideo && sharedVideo.getAttribute('src')) return true;
         var game = card._trontDiscoveryGame;
         if (!game || !game.preview || doc.hidden) return false;
-        if (activeCard) releaseCurrent(false);
+        if (activeCard) releaseCurrent();
 
         var video = getSharedVideo();
         var media = card.querySelector('.tront-discovery__media');
@@ -241,18 +224,13 @@
         video.onplaying = function () {
             if (generation !== activeGeneration || activeCard !== card) return;
             video.hidden = false;
-            setStatus(card._trontDiscoveryHost, game.archivalNote
-                ? 'Playing the edited preview from an earlier SMEAR build; its V16 footage and 2×–2.5× shot speeds are explained in the caption.'
-                : 'Playing ' + game.title + '; open its title or poster to visit the game.');
+            setStatus(card._trontDiscoveryHost, 'Previewing ' + game.title + '.');
         };
         video.onerror = function () { failPreview(generation); };
         video.setAttribute('src', game.preview);
         video.setAttribute('data-tront-request', String(generation));
         video.load();
-        setButtonState(card, true);
-        setStatus(card._trontDiscoveryHost, game.archivalNote
-            ? 'Loading the edited preview from an earlier SMEAR build.'
-            : 'Loading ' + game.title + ' preview.');
+        setStatus(card._trontDiscoveryHost, 'Loading ' + game.title + ' preview.');
         try {
             var playback = video.play();
             if (playback && typeof playback.catch === 'function') playback.catch(function () { failPreview(generation); });
@@ -291,74 +269,45 @@
         imageLink.appendChild(image);
         media.appendChild(imageLink);
 
-        var button = doc.createElement('button');
-        button.type = 'button';
-        button.className = 'tront-discovery__preview';
-        button.textContent = 'Preview';
-        button.setAttribute('data-playing', 'false');
-        button.setAttribute('aria-label', game.archivalNote
-            ? 'Play SMEAR preview from an earlier edited build'
-            : 'Play ' + game.title + ' preview');
-        button.hidden = !previewAllowed();
-        media.appendChild(button);
-        article._trontDiscoveryButton = button;
-
         var content = createText('div', 'tront-discovery__content');
         var heading = doc.createElement('h3');
         heading.className = 'tront-discovery__title';
         var titleLink = doc.createElement('a');
         titleLink.href = game.href;
-        titleLink.textContent = game.title + ' (' + game.year + ')';
+        titleLink.textContent = game.title;
         heading.appendChild(titleLink);
         content.appendChild(heading);
         content.appendChild(createText('p', 'tront-discovery__description', game.description));
-        if (game.archivalNote) content.appendChild(createText('p', 'tront-discovery__archive-note', game.archivalNote));
-        if (game.archivalDetails) {
-            var archiveDetails = createText('details', 'tront-discovery__archive-details');
-            archiveDetails.appendChild(createText('summary', null, 'About this preview'));
-            archiveDetails.appendChild(createText('p', null, game.archivalDetails));
-            content.appendChild(archiveDetails);
-        }
         article.appendChild(media);
         article.appendChild(content);
 
-        button.addEventListener('click', function () {
-            if (activeCard === article) releaseCurrent(true);
-            else if (!activate(article) && !previewAllowed()) setStatus(host, 'Previews are off with reduced motion or Save-Data, but the posters and links still work.');
-        });
         article.addEventListener('pointerenter', function (event) {
             if (event.pointerType === 'touch') return;
             state.hovered = true;
-            if (!activate(article) && !previewAllowed()) setStatus(host, 'Previews are off with reduced motion or Save-Data, but the posters and links still work.');
+            activate(article);
         });
         article.addEventListener('pointerleave', function (event) {
             if (event.pointerType === 'touch') return;
             state.hovered = false;
-            if (!state.focused && activeCard === article) releaseCurrent(false);
+            if (!state.focused && activeCard === article) releaseCurrent();
         });
         article.addEventListener('focusin', function (event) {
             var focusVisible = false;
             try { focusVisible = event.target.matches && event.target.matches(':focus-visible'); } catch (_) { /* Keyboard modality remains the fallback. */ }
             if (!focusVisible) return;
             state.focused = true;
-            if (!activate(article) && !previewAllowed()) setStatus(host, 'Previews are off with reduced motion or Save-Data, but the posters and links still work.');
+            activate(article);
         });
         article.addEventListener('focusout', function (event) {
             if (event.relatedTarget && article.contains(event.relatedTarget)) return;
             state.focused = false;
-            if (!state.hovered && activeCard === article) releaseCurrent(false);
+            if (!state.hovered && activeCard === article) releaseCurrent();
         });
         return article;
     }
 
     function updateRootsForMotion() {
-        var allowed = previewAllowed();
-        for (var i = 0; i < roots.length; i += 1) {
-            var buttons = roots[i].querySelectorAll('.tront-discovery__preview');
-            for (var j = 0; j < buttons.length; j += 1) buttons[j].hidden = !allowed;
-            if (!allowed) setStatus(roots[i], 'Previews are off with reduced motion or Save-Data, but the posters and links still work.');
-        }
-        if (!allowed) releaseCurrent(false);
+        if (!previewAllowed()) releaseCurrent();
     }
 
     function disclosureChain(host) {
@@ -383,7 +332,7 @@
             disclosure.addEventListener('toggle', function () {
                 var currentChain = disclosureChain(host);
                 if (!disclosuresAreOpen(currentChain)) {
-                    if (activeCard && host.contains(activeCard)) releaseCurrent(false);
+                    if (activeCard && host.contains(activeCard)) releaseCurrent();
                     return;
                 }
                 setupHost(host);
@@ -408,7 +357,6 @@
             grid.appendChild(card);
             if (visibilityObserver) visibilityObserver.observe(card);
         }
-        roots.push(host);
         setStatus(host, '');
     }
 
@@ -421,14 +369,14 @@
                     var card = entry.target;
                     var state = card._trontDiscoveryState;
                     if (!entry.isIntersecting || entry.intersectionRatio <= 0) {
-                        if (activeCard === card) releaseCurrent(false);
+                        if (activeCard === card) releaseCurrent();
                     } else if (state && (state.hovered || state.focused)) activate(card);
                 });
             }, { root: null, threshold: 0 });
         }
         var hosts = doc.querySelectorAll('[data-tront-discovery]');
         for (var i = 0; i < hosts.length; i += 1) setupHost(hosts[i]);
-        doc.addEventListener('visibilitychange', function () { if (doc.hidden) releaseCurrent(false); });
+        doc.addEventListener('visibilitychange', function () { if (doc.hidden) releaseCurrent(); });
         try {
             var motion = root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)');
             if (motion && motion.addEventListener) motion.addEventListener('change', updateRootsForMotion);
