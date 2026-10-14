@@ -42,7 +42,8 @@ jobs:
           node "$RUNNER_TEMP/live-checks/node_modules/playwright/cli.js" install --with-deps chrome
           echo "NODE_PATH=$RUNNER_TEMP/live-checks/node_modules" >> "$GITHUB_ENV"
       - name: Verify deployed asset hashes, three cards, and real media bytes
-        run: timeout 360s node <<'NODE'
+        run: |
+          timeout 360s node <<'NODE'
           'use strict';
           const assert = require('node:assert/strict');
           const crypto = require('node:crypto');
