@@ -1,6 +1,6 @@
 {
   "upstreamRepository": "TrentSterling/trentsterling.github.io",
-  "upstreamCommit": "a421b5bfb817046c1ed10b0e26b29da2c7d94be0",
+  "upstreamCommit": "fcda637550b9237140c89f9e42465ddd1cb07bf0",
   "upstreamJavascriptPath": "assets/js/tront-about-discovery.js",
   "upstreamJavascriptSha256": "cb5935a8e19c692c26fb8df302396138393528b0272d4cf00d72a906019248f0",
   "localJavascriptPath": "tront-about-discovery.js",
