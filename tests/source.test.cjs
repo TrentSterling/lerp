@@ -23,7 +23,8 @@ test('original C# download and article outside narrow factual corrections are pr
         if (p.includes('<strong>The Second Mistake:')) continue;
         assert.ok(html.includes(p.replace('"half-life" (λ)', '"half-life" (h)')), p.slice(0, 100));
     }
-    for (const code of old.matchAll(/<pre><code>([\s\S]*?)<\/code><\/pre>/g)) assert.ok(html.includes(code[0]));
+    const normalizedHtml = html.replace(/\r\n?/g, '\n');
+    for (const code of old.matchAll(/<pre><code>([\s\S]*?)<\/code><\/pre>/g)) assert.ok(normalizedHtml.includes(code[0].replace(/\r\n?/g, '\n')));
     const beforeAbout = old.match(/<!-- tront-about:start -->([\s\S]*?)<!-- tront-about:end -->/);
     const afterAbout = html.match(/<!-- tront-about:start -->([\s\S]*?)<!-- tront-about:end -->/);
     assert.ok(beforeAbout && afterAbout, 'About markers remain around the redesigned footer area');
