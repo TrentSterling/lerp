@@ -167,7 +167,7 @@
 <body>
     <a class="skip-link" href="#demo">Skip to demo</a>
     <nav id="magic-navbar-container" aria-label="Primary">
-        <button id="tront-theme-btn" class="nav-link" type="button" hidden><span class="theme-icon" aria-hidden="true">◐</span><span class="theme-label"> Theme</span></button>
+        <button id="tront-theme-btn" class="nav-link" type="button" hidden><span class="theme-icon" aria-hidden="true">?</span><span class="theme-label"> Theme</span></button>
         <a href="/discord/" class="nav-link">Discord</a>
         <a href="/blog/" class="nav-link">Blog</a>
         <a href="/games/" class="nav-link">Games</a>
@@ -188,7 +188,7 @@
                 <label for="comparison">Compare with</label>
                 <select id="comparison">
                     <option value="fixed">Fixed factor per frame</option>
-                    <option value="scaled">Rate × delta time (clamped)</option>
+                    <option value="scaled">Rate x delta time (clamped)</option>
                 </select>
             </div>
             <div class="lab-actions">
@@ -230,7 +230,7 @@
                  <blockquote><p>So we can simplify and see that the remaining distance after one second is f^1 = f. So it's covered the same distance in one second regardless of the framerate!</p></blockquote>
             </div>
             <div class="author-card">
-                <h4>Freya Holmér</h4>
+                <h4>Freya Holm�r</h4>
                 <p class="source-link"><a href="https://mastodon.social/@acegikmo/111928099302633045" target="_blank" rel="noopener noreferrer">https://mastodon.social/@acegikmo/111928099302633045</a></p>
                 <p>Brilliantly parameterized the formula using a "half-life" (h), creating the most intuitive way to tune the smoothing for designers and artists with the formula <code>a = lerp(a, b, 1 - 2<sup>-dt/halfLife</sup>)</code>.</p>
                 <blockquote><p>...in case you want to port your existing lerps, you can convert from the old framerate dependent "lerp factor" to a half-life value... this will match the decay rate of your old implementation at the specific framerate, in any framerate.</p></blockquote>
@@ -238,11 +238,11 @@
         </div>
         
         <section class="explanation-box precision-notes" aria-labelledby="precision-title">
-            <h2 id="precision-title">What “independent” means</h2>
-            <p>For a fixed target, the remaining error is multiplied by <code>2<sup>-dt/halfLife</sup></code>. Two steps multiply to <code>2<sup>-(dt₁ + dt₂)/halfLife</sup></code>, so splitting the same elapsed time into different steps gives the same answer. This is the exponential-decay property explained by <a href="https://www.rorydriscoll.com/2016/03/07/frame-rate-independent-damping-using-lerp/" target="_blank" rel="noopener noreferrer">Rory Driscoll</a> and <a href="https://www.construct.net/en/blogs/ashleys-blog-2/using-lerp-delta-time-924" target="_blank" rel="noopener noreferrer">Ashley</a>.</p>
+            <h2 id="precision-title">What "independent" means</h2>
+            <p>For a fixed target, the remaining error is multiplied by <code>2<sup>-dt/halfLife</sup></code>. Two steps multiply to <code>2<sup>-(dt1 + dt2)/halfLife</sup></code>, so splitting the same elapsed time into different steps gives the same answer. This is the exponential-decay property explained by <a href="https://www.rorydriscoll.com/2016/03/07/frame-rate-independent-damping-using-lerp/" target="_blank" rel="noopener noreferrer">Rory Driscoll</a> and <a href="https://www.construct.net/en/blogs/ashleys-blog-2/using-lerp-delta-time-924" target="_blank" rel="noopener noreferrer">Ashley</a>.</p>
             <p>The rows simulate 10, 30 and 60 updates per second. Compare them at shared sample times: a 10 FPS object still moves in 100 ms steps. A changing target is sampled at different times at different rates, so exponential smoothing alone does not make those paths identical.</p>
             <p>The half-life control sets <code>rate = ln(2) / halfLife</code>. The fixed factor is matched at 60 FPS; the delta-time option uses that continuous rate with a clamped Euler step. Pausing or leaving the tab pauses this demo's clock. Browser repaint frequency still limits how many updates you can actually see, as described in <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame" target="_blank" rel="noopener noreferrer">requestAnimationFrame's timing notes</a>.</p>
-            <p>Use seconds consistently, a positive half-life, non-negative delta time and decay rate, and a remaining-distance factor between 0 and 1. Exponential damping approaches a fixed target asymptotically; use a small tolerance if your game needs a definite “arrived” state.</p>
+            <p>Use seconds consistently, a positive half-life, non-negative delta time and decay rate, and a remaining-distance factor between 0 and 1. Exponential damping approaches a fixed target asymptotically; use a small tolerance if your game needs a definite "arrived" state.</p>
         </section>
 
         <div class="card-section implementations-section">
@@ -251,7 +251,7 @@
             <a href="SmoothingExtensions.cs" class="download-button" download>Download SmoothingExtensions.cs</a>
             
             <div class="code-block-wrapper">
-                <h3>Half-Life (Freya Holmér)</h3>
+                <h3>Half-Life (Freya Holm�r)</h3>
                 <p>The most intuitive method. Tune the smoothing by answering: "How many seconds should it take to get halfway to the target?" A smaller half-life means faster smoothing.</p>
                 <pre><code><span class="comment">// Usage: currentValue = currentValue.LerpFrimHalfLife(targetValue, 0.2f, Time.deltaTime);</span>
 <span class="keyword">public static float</span> <span class="type">LerpFrimHalfLife</span>(<span class="keyword">this float</span> source, <span class="type">float</span> target, <span class="type">float</span> halfLife, <span class="type">float</span> deltaTime)
@@ -282,22 +282,33 @@
         </div>
 
         <footer>
-            <p>Created by Trent 'Tront' Sterling. Find more at <a href="https://tront.xyz" target="_blank">tront.xyz</a> and <a href="https://github.com/TrentSterling" target="_blank">GitHub</a>.</p>
-            <p class="tags">Tags: framerate independent lerp, frim lerp, gamedev, game programming, unity, c#, javascript, delta time, smoothing, damping, exponential decay, motion design</p>
 <!-- tront-about:start -->
-<style>.tront-about{position:fixed;left:12px;bottom:12px;z-index:2147483000;font:13px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif;color:#e9ecef;text-align:left}.tront-about>summary{cursor:pointer;list-style:none;display:inline-block;background:#0b0d10d9;color:#e9ecef;border:1px solid #ffffff33;border-radius:999px;padding:6px 12px;backdrop-filter:blur(6px);user-select:none}.tront-about>summary::-webkit-details-marker{display:none}.tront-about>summary:hover{border-color:#ffffff66}.tront-about>div{margin-top:8px;width:min(560px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:#0b0d10f5;border:1px solid #ffffff33;border-radius:12px;padding:14px 16px;box-shadow:0 12px 40px #000a}.tront-about h2{font-size:17px;margin:0 0 8px;color:#fff}.tront-about p{margin:0 0 9px}.tront-about a{color:#8fd3ff}.tront-about ul{margin:4px 0 10px;padding-left:18px}.tront-about li{margin:2px 0}.tront-about .tront-hub{opacity:.85;font-size:12px}</style>
-<details class="tront-about" id="trontAbout"><summary>About &middot; More by Tront</summary><div><h2>Frame-Rate Independent Lerp by Tront</h2><p>A demo of a bug almost every game has shipped at least once: `lerp(a, b, 0.1)` every frame is not frame-rate independent, so the same code feels different at 30, 60 and 144 frames per second. This page runs the naive version and the corrected exponential form side by side so you can see them drift apart.</p><p>One page, no install. By Tront (Trent Sterling), who hit this in production more than once.</p><p><strong>More from Tront</strong></p><ul><li><a href="https://tront.xyz/vibestar/">VibeStar</a>: A* pathfinding visualiser with web workers and a lot of knobs.</li><li><a href="https://tront.xyz/shortpath/">Short Path</a>: Duan-Mao and Dijkstra shortest-path algorithms visualised in JavaScript.</li><li><a href="https://tront.xyz/spheres/">Procedural Packed Texture Generator</a>: Generate procedurally packed tiling textures with a live WebGL shader preview.</li></ul><p class="tront-hub"><a href="https://tront.xyz/games/">All games and tools</a> &middot; <a href="https://tront.xyz/blog/">Devlog</a> &middot; <a href="https://tront.xyz/discord/">Discord</a> &middot; <a href="https://github.com/TrentSterling/lerp">Source on GitHub</a> &middot; <a href="https://tront.xyz/">tront.xyz</a></p></div></details>
+<section class="tront-discovery tront-discovery--about" data-tront-discovery aria-labelledby="lerp-about-title">
+    <header class="tront-discovery__heading">
+        <h2 id="lerp-about-title">About Tront</h2>
+    </header>
+    <div class="tront-discovery__about">
+        <div class="tront-discovery__bio">
+            <p>A demo of a bug almost every game has shipped at least once: &#96;lerp(a, b, 0.1)&#96; every frame is not frame-rate independent, so the same code feels different at 30, 60 and 144 frames per second. This page runs the naive version and the corrected exponential form side by side so you can see them drift apart.</p>
+            <p>One page, no install. By Tront (Trent Sterling), who hit this in production more than once.</p>
+        </div>
+        <div class="tront-discovery__links">
+            <h3>More from Tront</h3>
+            <ul class="tront-discovery__links-list">
+                <li><a href="https://tront.xyz/vibestar/">VibeStar</a>: A* pathfinding visualiser with web workers and a lot of knobs.</li>
+                <li><a href="https://tront.xyz/shortpath/">Short Path</a>: Duan-Mao and Dijkstra shortest-path algorithms visualised in JavaScript.</li>
+                <li><a href="https://tront.xyz/spheres/">Procedural Packed Texture Generator</a>: Generate procedurally packed tiling textures with a live WebGL shader preview.</li>
+            </ul>
+            <p class="tront-discovery__hub"><a href="https://tront.xyz/games/">All games and tools</a> &middot; <a href="https://tront.xyz/blog/">Devlog</a> &middot; <a href="https://tront.xyz/discord/">Discord</a> &middot; <a href="https://github.com/TrentSterling/lerp">Source on GitHub</a> &middot; <a href="https://tront.xyz/">tront.xyz</a></p>
+        </div>
+    </div>
+    <h3 class="tront-discovery__games-title">Games</h3>
+    <div class="tront-discovery__grid" data-tront-discovery-cards></div>
+    <p class="tront-discovery__status" data-tront-discovery-status role="status" aria-live="polite"></p>
+    <noscript><p class="tront-discovery__hub"><a href="/craftmine/">CraftMine</a> &middot; <a href="/smear/">SMEAR</a> &middot; <a href="/games/">More games and tools</a></p></noscript>
+</section>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Frame-Rate Independent Lerp", "alternateName": ["Frame-Rate Independent Lerp by Tront"], "url": "https://tront.xyz/lerp/", "description": "Why naive lerp smoothing breaks at different frame rates, and the fix.", "author": {"@type": "Person", "name": "Trent Sterling", "alternateName": "Tront", "url": "https://tront.xyz/"}, "publisher": {"@type": "Organization", "name": "Tront", "url": "https://tront.xyz/"}, "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "applicationCategory": "DeveloperApplication", "operatingSystem": "Web browser"}</script>
 <!-- tront-about:end -->
-            <section class="tront-discovery" data-tront-discovery aria-labelledby="lerp-discovery-title">
-                <header class="tront-discovery__heading">
-                    <h2 id="lerp-discovery-title">More to play</h2>
-                    <p class="tront-discovery__intro">Open links directly or preview on hover, focus, or tap.</p>
-                </header>
-                <div class="tront-discovery__grid" data-tront-discovery-cards></div>
-                <p class="tront-discovery__status" data-tront-discovery-status role="status" aria-live="polite"></p>
-                <noscript><p><a href="/craftmine/">CraftMine</a> · <a href="/smear/">SMEAR</a> · <a href="/games/">More games and tools</a></p></noscript>
-            </section>
         </footer>
     </main>
 
