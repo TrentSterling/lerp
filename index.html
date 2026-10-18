@@ -230,7 +230,7 @@
                  <blockquote><p>So we can simplify and see that the remaining distance after one second is f^1 = f. So it's covered the same distance in one second regardless of the framerate!</p></blockquote>
             </div>
             <div class="author-card">
-                <h4>Freya Holm�r</h4>
+                <h4>Freya Holmér</h4>
                 <p class="source-link"><a href="https://mastodon.social/@acegikmo/111928099302633045" target="_blank" rel="noopener noreferrer">https://mastodon.social/@acegikmo/111928099302633045</a></p>
                 <p>Brilliantly parameterized the formula using a "half-life" (h), creating the most intuitive way to tune the smoothing for designers and artists with the formula <code>a = lerp(a, b, 1 - 2<sup>-dt/halfLife</sup>)</code>.</p>
                 <blockquote><p>...in case you want to port your existing lerps, you can convert from the old framerate dependent "lerp factor" to a half-life value... this will match the decay rate of your old implementation at the specific framerate, in any framerate.</p></blockquote>
@@ -251,7 +251,7 @@
             <a href="SmoothingExtensions.cs" class="download-button" download>Download SmoothingExtensions.cs</a>
             
             <div class="code-block-wrapper">
-                <h3>Half-Life (Freya Holm�r)</h3>
+                <h3>Half-Life (Freya Holmér)</h3>
                 <p>The most intuitive method. Tune the smoothing by answering: "How many seconds should it take to get halfway to the target?" A smaller half-life means faster smoothing.</p>
                 <pre><code><span class="comment">// Usage: currentValue = currentValue.LerpFrimHalfLife(targetValue, 0.2f, Time.deltaTime);</span>
 <span class="keyword">public static float</span> <span class="type">LerpFrimHalfLife</span>(<span class="keyword">this float</span> source, <span class="type">float</span> target, <span class="type">float</span> halfLife, <span class="type">float</span> deltaTime)

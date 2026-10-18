@@ -33,3 +33,11 @@ test('original C# download and article outside narrow factual corrections are pr
     assert.ok(oldJsonLd && newJsonLd, 'About structured data remains present');
     assert.equal(newJsonLd[1], oldJsonLd[1], 'About structured data remains unchanged');
 });
+
+test('Freya Holmér credit headings retain the verified name and original attribution link', () => {
+    assert.equal((html.match(/Freya Holmér/g) || []).length, 2);
+    assert.ok(html.includes('<h4>Freya Holmér</h4>'));
+    assert.ok(html.includes('<h3>Half-Life (Freya Holmér)</h3>'));
+    assert.match(html, /<h4>Freya Holmér<\/h4>\s*<p class="source-link"><a href="https:\/\/mastodon\.social\/@acegikmo\/111928099302633045"/);
+    assert.ok(!html.includes('Freya Holm\uFFFD'));
+});
